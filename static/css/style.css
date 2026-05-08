@@ -12,14 +12,16 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     background-color: #f8f9fa;
-    padding-bottom: 60px;
+    padding-bottom: 80px;
     position: relative;
-    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* PWA specific styles */
@@ -73,7 +75,14 @@ a {
 }
 
 .container {
-    padding: 20px;
+    padding: 16px;
+    max-width: 100%;
+}
+
+@media (min-width: 768px) {
+    .container {
+        padding: 20px;
+    }
 }
 
 /* Buttons */
@@ -123,12 +132,24 @@ a {
 
 /* Navbar */
 .navbar {
-    padding: 15px 0;
+    padding: 12px 0;
+    background-color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .navbar-brand {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+    font-weight: 600;
     color: var(--primary-color) !important;
+}
+
+.navbar-toggler {
+    border: none;
+    padding: 8px;
+}
+
+.navbar-toggler:focus {
+    box-shadow: none;
 }
 
 .nav-link {
@@ -143,25 +164,52 @@ a {
 
 /* Dashboard cards */
 .feature-card {
-    height: 140px;
-    border-radius: 15px;
+    height: 120px;
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     color: white;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
 }
 
-.feature-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.feature-card:active::before {
+    opacity: 1;
+}
+
+.feature-card:active {
+    transform: scale(0.98);
 }
 
 .feature-card i {
-    font-size: 2rem;
-    margin-bottom: 10px;
+    font-size: 2.2rem;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.feature-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .feature-card.tasks {
@@ -326,31 +374,115 @@ a {
     margin-right: 10px;
 }
 
-/* Media queries */
+/* Mobile optimizations */
 @media (max-width: 767px) {
-    .feature-card {
-        height: 120px;
+    body {
+        padding-bottom: 90px;
     }
     
-    .feature-card i {
-        font-size: 1.5rem;
-    }
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
     .container {
-        padding-left: 10px;
-        padding-right: 10px;
+        padding: 12px;
+    }
+    
+    .navbar {
+        padding: 10px 0;
     }
     
     .navbar-brand {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
     }
     
-    /* Ensure forms are readable on mobile */
-    input, select, textarea {
-        font-size: 16px !important; /* Prevent zoom on focus in iOS */
+    /* Feature cards - mobile optimized */
+    .feature-card {
+        height: 110px;
+        border-radius: 14px;
+        margin-bottom: 12px;
+    }
+    
+    .feature-card i {
+        font-size: 1.8rem;
+        margin-bottom: 6px;
+    }
+    
+    .feature-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    /* Headings */
+    h1, .display-5 {
+        font-size: 1.75rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .lead {
+        font-size: 1rem !important;
+    }
+    
+    /* Cards */
+    .card {
+        border-radius: 12px;
+        margin-bottom: 16px;
+    }
+    
+    .card-header {
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+    
+    .card-body {
+        padding: 16px;
+    }
+    
+    /* Buttons */
+    .btn {
+        padding: 10px 20px;
+        font-size: 0.95rem;
+        border-radius: 10px;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    
+    /* Forms - prevent zoom on iOS */
+    input, select, textarea, .form-control {
+        font-size: 16px !important;
+        padding: 12px !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Task items */
+    .task-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 10px;
+    }
+    
+    /* Medication items */
+    .medication-item {
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 10px;
+    }
+    
+    .med-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+        margin-right: 12px;
+    }
+    
+    /* Grid spacing */
+    .row {
+        margin-left: -6px;
+        margin-right: -6px;
+    }
+    
+    .row > * {
+        padding-left: 6px;
+        padding-right: 6px;
     }
 }
 
@@ -569,6 +701,15 @@ body.ui-assisted {
     background-color: #fafafa;
 }
 
+/* Make feature card text white for better visibility */
+body.ui-assisted .feature-card {
+    color: white !important;
+}
+
+body.ui-assisted .feature-card h3 {
+    color: white !important;
+}
+
 body.ui-assisted .btn {
     padding: 24px 48px;
     font-size: 22px;
@@ -715,25 +856,27 @@ body.ui-assisted .caregiver-mode-badge {
 }
 
 /* ============================================
-   AI ASSISTANT CHAT INTERFACE
+   AI ASSISTANT CHAT INTERFACE - ENHANCED
    ============================================ */
 
 .chat-container {
     height: 400px;
     overflow-y: auto;
     border: 2px solid #e0e0e0;
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 16px;
+    padding: 16px;
     background-color: #f8f9fa;
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
 }
 
 .chat-message {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     padding: 12px 16px;
-    border-radius: 18px;
-    max-width: 80%;
+    border-radius: 16px;
+    max-width: 85%;
     word-wrap: break-word;
+    line-height: 1.5;
     animation: fadeIn 0.3s ease-in;
 }
 
@@ -756,12 +899,14 @@ body.ui-assisted .caregiver-mode-badge {
     margin-right: auto;
     border: 1px solid #e0e0e0;
     border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .typing-indicator {
     font-style: italic;
     color: #666;
     animation: pulse 1.5s infinite;
+    padding: 8px 12px;
 }
 
 @keyframes pulse {
@@ -770,19 +915,25 @@ body.ui-assisted .caregiver-mode-badge {
 }
 
 .chat-input .input-group {
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-radius: 24px;
     overflow: hidden;
+    border: 2px solid #e0e0e0;
+}
+
+.chat-input .input-group:focus-within {
+    border-color: var(--primary-color);
 }
 
 .chat-input input {
     border: none;
-    padding: 14px 20px;
+    padding: 12px 18px;
+    font-size: 16px;
 }
 
 .chat-input button {
     border: none;
-    padding: 14px 20px;
+    padding: 12px 18px;
 }
 
 /* Voice button animations */
@@ -792,70 +943,135 @@ body.ui-assisted .caregiver-mode-badge {
 
 @keyframes beat {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.2); }
+    50% { transform: scale(1.15); }
+}
+
+/* Quick question buttons */
+.quick-question {
+    display: inline-block;
+    padding: 10px 18px;
+    margin: 6px 4px;
+    background-color: white;
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.quick-question:active {
+    transform: scale(0.96);
+    background-color: var(--primary-color);
+    color: white;
+}
+
+@media (hover: hover) {
+    .quick-question:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+}
+
+@media (max-width: 767px) {
+    .chat-container {
+        height: 350px;
+        padding: 12px;
+        border-radius: 12px;
+    }
+    
+    .chat-message {
+        max-width: 90%;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+    }
+    
+    .chat-input input {
+        padding: 10px 16px;
+    }
+    
+    .chat-input button {
+        padding: 10px 16px;
+    }
+    
+    .quick-question {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+        margin: 4px 3px;
+    }
 }
 
 /* Adaptive chat for different UI modes */
 body.ui-simplified .chat-container {
-    height: 450px;
-    font-size: 18px;
+    height: 420px;
+    font-size: 17px;
 }
 
 body.ui-simplified .chat-message {
-    padding: 16px 20px;
-    font-size: 18px;
-    max-width: 85%;
+    padding: 14px 18px;
+    font-size: 17px;
+    max-width: 88%;
 }
 
 body.ui-simplified .chat-input input {
-    font-size: 18px;
-    padding: 16px 24px;
+    font-size: 17px;
+    padding: 14px 20px;
 }
 
 body.ui-simplified .chat-input button {
-    font-size: 18px;
-    padding: 16px 24px;
+    font-size: 17px;
+    padding: 14px 20px;
 }
 
 body.ui-assisted .chat-container {
-    height: 500px;
-    font-size: 22px;
+    height: 480px;
+    font-size: 20px;
     border: 3px solid #d0d0d0;
 }
 
 body.ui-assisted .chat-message {
-    padding: 20px 24px;
-    font-size: 22px;
-    max-width: 90%;
-    line-height: 1.8;
+    padding: 18px 22px;
+    font-size: 20px;
+    max-width: 92%;
+    line-height: 1.7;
 }
 
 body.ui-assisted .chat-input input {
-    font-size: 22px;
-    padding: 20px 28px;
+    font-size: 20px;
+    padding: 16px 24px;
 }
 
 body.ui-assisted .chat-input button {
-    font-size: 22px;
-    padding: 20px 28px;
-    min-width: 70px;
+    font-size: 20px;
+    padding: 16px 24px;
 }
 
 body.ui-assisted .quick-question {
-    font-size: 20px;
-    padding: 14px 24px;
-    margin-bottom: 12px;
+    font-size: 18px;
+    padding: 12px 20px;
+    margin: 8px 6px;
 }
 
 /* Voice indicator for assisted mode */
 body.ui-assisted .chat-input small,
 body.ui-simplified .chat-input small {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
 }
 
 body.ui-assisted .chat-input small {
-    font-size: 18px;
+    font-size: 17px;
+}
+
+@media (max-width: 767px) {
+    body.ui-simplified .chat-container {
+        height: 380px;
+    }
+    
+    body.ui-assisted .chat-container {
+        height: 420px;
+    }
 }
 
 /* ============================================
@@ -864,27 +1080,34 @@ body.ui-assisted .chat-input small {
 
 .voice-nav-button {
     position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 60px;
-    height: 60px;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #4E7ADC 0%, #7749F8 100%);
     color: white;
     border: none;
-    box-shadow: 0 6px 20px rgba(78, 122, 220, 0.4);
+    box-shadow: 0 4px 16px rgba(78, 122, 220, 0.4);
     cursor: pointer;
     z-index: 9999;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 22px;
 }
 
-.voice-nav-button:hover {
-    transform: scale(1.1);
-    box-shadow: 0 8px 25px rgba(78, 122, 220, 0.6);
+.voice-nav-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(78, 122, 220, 0.4);
+}
+
+@media (hover: hover) {
+    .voice-nav-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(78, 122, 220, 0.6);
+    }
 }
 
 .voice-nav-button.listening {
@@ -905,17 +1128,18 @@ body.ui-assisted .chat-input small {
 
 .voice-nav-status {
     position: fixed;
-    bottom: 110px;
-    right: 30px;
-    background: rgba(0, 0, 0, 0.85);
+    bottom: 85px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
     color: white;
-    padding: 12px 20px;
-    border-radius: 25px;
-    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
     font-weight: 600;
     z-index: 9998;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease;
+    max-width: calc(100vw - 100px);
 }
 
 @keyframes slideUp {
@@ -931,31 +1155,33 @@ body.ui-assisted .chat-input small {
 
 /* Adaptive sizing for different UI modes */
 body.ui-simplified .voice-nav-button {
-    width: 70px;
-    height: 70px;
-    font-size: 28px;
-    bottom: 40px;
-    right: 40px;
+    width: 64px;
+    height: 64px;
+    font-size: 26px;
+    bottom: 24px;
+    right: 24px;
 }
 
 body.ui-simplified .voice-nav-status {
-    font-size: 16px;
-    padding: 14px 24px;
-    bottom: 130px;
+    font-size: 15px;
+    padding: 12px 20px;
+    bottom: 100px;
+    right: 24px;
 }
 
 body.ui-assisted .voice-nav-button {
-    width: 80px;
-    height: 80px;
-    font-size: 32px;
-    bottom: 50px;
-    right: 50px;
+    width: 72px;
+    height: 72px;
+    font-size: 30px;
+    bottom: 28px;
+    right: 28px;
 }
 
 body.ui-assisted .voice-nav-status {
-    font-size: 18px;
-    padding: 16px 28px;
-    bottom: 150px;
+    font-size: 16px;
+    padding: 14px 24px;
+    bottom: 112px;
+    right: 28px;
 }
 
 /* Pulsing effect for assisted mode to draw attention */
@@ -969,5 +1195,246 @@ body.ui-assisted .voice-nav-button {
     }
     50% {
         box-shadow: 0 8px 30px rgba(78, 122, 220, 0.7);
+    }
+}
+
+/* ============================================
+   MOBILE-FIRST OPTIMIZATIONS
+   ============================================ */
+
+/* Smooth scrolling for all devices */
+* {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text selection on buttons and interactive elements */
+button, .btn, .feature-card, .voice-nav-button {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Improve touch target sizes */
+a, button, input, select, textarea, .btn, .form-check-input {
+    touch-action: manipulation;
+}
+
+/* Optimize animations for mobile */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Better focus states for accessibility */
+button:focus-visible, .btn:focus-visible, a:focus-visible {
+    outline: 3px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+/* Improve form input appearance on mobile */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="number"],
+textarea,
+select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Remove spinner from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Better checkbox and radio button styling */
+input[type="checkbox"],
+input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+@media (max-width: 767px) {
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* Optimize images for mobile */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Better alert styling for mobile */
+.alert {
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 767px) {
+    .alert {
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Improve modal appearance on mobile */
+@media (max-width: 767px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-content {
+        border-radius: 12px;
+    }
+    
+    .modal-header {
+        padding: 14px 16px;
+    }
+    
+    .modal-body {
+        padding: 16px;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px;
+    }
+}
+
+/* Better dropdown menu on mobile */
+@media (max-width: 767px) {
+    .dropdown-menu {
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        border: none;
+    }
+    
+    .dropdown-item {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+}
+
+/* Optimize table for mobile */
+@media (max-width: 767px) {
+    .table-responsive {
+        border-radius: 12px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    table {
+        font-size: 0.9rem;
+    }
+    
+    th, td {
+        padding: 10px 8px;
+    }
+}
+
+/* Better badge styling */
+.badge {
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+@media (max-width: 767px) {
+    .badge {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Improve progress bar visibility */
+.progress {
+    height: 12px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+@media (max-width: 767px) {
+    .progress {
+        height: 10px;
+    }
+}
+
+/* Better list group styling */
+.list-group-item {
+    border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+@media (max-width: 767px) {
+    .list-group-item {
+        padding: 12px 14px;
+        font-size: 0.95rem;
+    }
+}
+
+/* Optimize pagination for mobile */
+@media (max-width: 767px) {
+    .pagination {
+        font-size: 0.9rem;
+    }
+    
+    .page-link {
+        padding: 8px 12px;
+    }
+}
+
+/* Better tooltip positioning on mobile */
+@media (max-width: 767px) {
+    .tooltip {
+        font-size: 0.85rem;
+    }
+}
+
+/* Improve tab navigation on mobile */
+@media (max-width: 767px) {
+    .nav-tabs .nav-link {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Better breadcrumb styling */
+@media (max-width: 767px) {
+    .breadcrumb {
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        margin-bottom: 12px;
+    }
+}
+
+/* Optimize spinner/loading indicators */
+.spinner-border,
+.spinner-grow {
+    width: 2rem;
+    height: 2rem;
+}
+
+@media (max-width: 767px) {
+    .spinner-border,
+    .spinner-grow {
+        width: 1.5rem;
+        height: 1.5rem;
     }
 }
