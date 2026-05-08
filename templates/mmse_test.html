@@ -7,14 +7,27 @@
     .test-container {
         max-width: 900px;
         margin: 0 auto;
+        padding: 0 15px;
     }
     
     .test-card {
         background: white;
         border-radius: 15px;
-        padding: 40px;
+        padding: 30px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         margin-bottom: 30px;
+    }
+    
+    @media (max-width: 767px) {
+        .test-container {
+            padding: 0 10px;
+        }
+        
+        .test-card {
+            padding: 20px 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
     }
     
     .progress-bar-container {
@@ -34,17 +47,49 @@
     .section-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 20px;
+        padding: 18px;
         border-radius: 10px;
-        margin-bottom: 30px;
+        margin-bottom: 25px;
+    }
+    
+    .section-header h4 {
+        font-size: 1.3rem;
+        margin-bottom: 8px;
+    }
+    
+    .section-header p {
+        font-size: 0.95rem;
     }
     
     .question-card {
         background: #f8f9fa;
-        padding: 25px;
+        padding: 20px;
         border-radius: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         border-left: 4px solid #667eea;
+    }
+    
+    @media (max-width: 767px) {
+        .section-header {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .section-header h4 {
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        
+        .section-header p {
+            font-size: 0.85rem;
+        }
+        
+        .question-card {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
     }
     
     .question-number {
@@ -99,13 +144,14 @@
         padding: 12px;
         border: 2px solid #e9ecef;
         border-radius: 8px;
-        font-size: 1rem;
+        font-size: 16px;
         margin-top: 15px;
     }
     
     .text-input:focus {
         border-color: #667eea;
         outline: none;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
     
     .drawing-canvas {
@@ -114,6 +160,21 @@
         cursor: crosshair;
         background: white;
         margin-top: 15px;
+        max-width: 100%;
+        height: auto;
+    }
+    
+    @media (max-width: 767px) {
+        .text-input {
+            padding: 10px;
+            font-size: 16px;
+            margin-top: 12px;
+        }
+        
+        .drawing-canvas {
+            width: 100% !important;
+            height: 250px !important;
+        }
     }
     
     .canvas-controls {
@@ -138,6 +199,49 @@
     
     .btn-nav {
         min-width: 120px;
+        padding: 10px 20px;
+    }
+    
+    @media (max-width: 767px) {
+        .btn-nav {
+            min-width: 100px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .question-number {
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            font-size: 0.9rem;
+        }
+        
+        .answer-option label {
+            padding: 12px 16px;
+            font-size: 0.95rem;
+        }
+        
+        .canvas-controls {
+            flex-direction: column;
+        }
+        
+        .canvas-controls button {
+            width: 100%;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .test-container h2 {
+            font-size: 1.5rem;
+        }
+        
+        .section-header h4 {
+            font-size: 1rem;
+        }
+        
+        .question-card strong {
+            font-size: 0.9rem;
+        }
     }
 </style>
 {% endblock %}

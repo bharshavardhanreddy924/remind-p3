@@ -30,23 +30,51 @@
     
     .memory-grid {
         display: grid;
-        grid-template-columns: repeat(4, 100px);
-        gap: 15px;
-        margin: 20px 0;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 20px auto;
+        max-width: 100%;
+        width: 100%;
     }
     
     .memory-card {
-        width: 100px;
-        height: 100px;
+        width: 100%;
+        aspect-ratio: 1;
+        max-width: 100px;
+        max-height: 100px;
         background: #667eea;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2.5rem;
+        font-size: 2rem;
         cursor: pointer;
         transition: all 0.3s;
         position: relative;
+    }
+    
+    @media (max-width: 767px) {
+        .memory-grid {
+            gap: 8px;
+            padding: 0 10px;
+        }
+        
+        .memory-card {
+            font-size: 1.5rem;
+            border-radius: 8px;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .memory-grid {
+            gap: 6px;
+            padding: 0 5px;
+        }
+        
+        .memory-card {
+            font-size: 1.2rem;
+            border-radius: 6px;
+        }
     }
     
     .memory-card.flipped {
@@ -65,21 +93,31 @@
     
     .sequence-display {
         display: flex;
-        gap: 15px;
+        gap: 12px;
         margin: 20px 0;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .sequence-item {
-        width: 80px;
-        height: 80px;
+        width: 70px;
+        height: 70px;
         background: #667eea;
         border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 2rem;
+        font-size: 1.8rem;
         color: white;
         font-weight: bold;
+    }
+    
+    @media (max-width: 767px) {
+        .sequence-item {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
     }
     
     .sequence-item.active {
@@ -121,14 +159,51 @@
     .task-instructions {
         background: #e7f3ff;
         border-left: 4px solid #667eea;
-        padding: 20px;
+        padding: 15px;
         border-radius: 8px;
         margin-bottom: 20px;
+        font-size: 0.95rem;
     }
     
     .btn-game {
         min-width: 150px;
         margin: 10px;
+    }
+    
+    @media (max-width: 767px) {
+        .task-card {
+            padding: 20px 15px;
+        }
+        
+        .game-area {
+            padding: 20px 10px;
+        }
+        
+        .task-instructions {
+            padding: 12px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-game {
+            min-width: 120px;
+            font-size: 0.9rem;
+        }
+        
+        .timer {
+            font-size: 1.2rem;
+        }
+        
+        .score-panel {
+            padding: 15px 10px;
+        }
+        
+        .score-item {
+            margin: 0 10px;
+        }
+        
+        .score-value {
+            font-size: 1.5rem;
+        }
     }
 </style>
 {% endblock %}
