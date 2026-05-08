@@ -27,17 +27,12 @@
     
     <div class="chat-input-fixed">
         <div class="d-flex gap-2 align-items-center">
-            <input type="text" id="user-input" class="form-control" placeholder="Type your question..." style="flex: 1;">
-            <button class="btn btn-primary" id="send-button" style="flex-shrink: 0;">
-                <i class="fas fa-paper-plane"></i>
+            <input type="text" id="user-input" class="form-control" placeholder="Type or use voice..." style="flex: 1;">
+            <button class="btn btn-primary voice-input-button" id="voice-input-button" style="flex-shrink: 0;">
+                <i class="fas fa-microphone"></i>
             </button>
         </div>
     </div>
-    
-    <!-- Floating Voice Button -->
-    <button class="voice-chat-button" id="voice-chat-button" title="Voice Input">
-        <i class="fas fa-microphone"></i>
-    </button>
 </div>
 {% endblock %}
 
@@ -46,13 +41,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
-        const sendButton = document.getElementById('send-button');
+        const voiceInputButton = document.getElementById('voice-input-button');
         const chatContainer = document.getElementById('chat-container');
-        const voiceChatButton = document.getElementById('voice-chat-button');
         
-        // Voice recognition setup
+        // Voice recognition and synthesis setup
         let recognition = null;
+        let synthesis = window.speechSynthesis;
         let isListening = false;
+        let isSpeaking = false;
         
         // Initialize Speech Recognition
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -64,8 +60,8 @@
             
             recognition.onstart = function() {
                 isListening = true;
-                voiceChatButton.classList.add('listening');
-                voiceChatButton.innerHTML = '<i class="fas fa-stop"></i>';
+                voiceInputButton.classList.add('listening');
+                voiceInputButton.innerHTML = '<i class="fas fa-stop"></i>';
                 showVoiceStatus('Listening... Speak now');
             };
             
@@ -98,12 +94,13 @@
                 stopListening();
             };
         } else {
-            // Hide voice button if not supported
-            voiceChatButton.style.display = 'none';
+            // Disable voice button if not supported
+            voiceInputButton.disabled = true;
+            voiceInputButton.title = 'Voice not supported';
         }
         
         // Voice button click handler
-        voiceChatButton.addEventListener('click', function() {
+        voiceInputButton.addEventListener('click', function() {
             if (!recognition) {
                 alert('Voice recognition is not supported in your browser.');
                 return;
@@ -128,8 +125,8 @@
         
         function stopListening() {
             isListening = false;
-            voiceChatButton.classList.remove('listening');
-            voiceChatButton.innerHTML = '<i class="fas fa-microphone"></i>';
+            voiceInputButton.classList.remove('listening');
+            voiceInputButton.innerHTML = '<i class="fas fa-microphone"></i>';
             hideVoiceStatus();
             
             if (recognition) {
@@ -139,6 +136,36 @@
                     console.error('Error stopping recognition:', error);
                 }
             }
+        }
+        
+        // Text-to-speech function
+        function speakText(text) {
+            // Stop any ongoing speech
+            synthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            utterance.lang = 'en-US';
+            
+            utterance.onstart = function() {
+                isSpeaking = true;
+                showVoiceStatus('Speaking...');
+            };
+            
+            utterance.onend = function() {
+                isSpeaking = false;
+                hideVoiceStatus();
+            };
+            
+            utterance.onerror = function(event) {
+                console.error('Speech synthesis error:', event);
+                isSpeaking = false;
+                hideVoiceStatus();
+            };
+            
+            synthesis.speak(utterance);
         }
         
         function showVoiceStatus(message) {
@@ -169,12 +196,9 @@
             });
         });
         
-        // Send button click handler
-        sendButton.addEventListener('click', sendMessage);
-        
-        // Enter key handler
+        // Enter key handler for text input
         userInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !isListening) {
                 sendMessage();
             }
         });
@@ -231,6 +255,9 @@
                 
                 // Add AI response
                 addMessage(data.response, 'assistant');
+                
+                // Speak the AI response
+                speakText(data.response);
                 
                 // Add assistant response to conversation history
                 conversationHistory.push({

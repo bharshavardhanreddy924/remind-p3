@@ -626,36 +626,30 @@ a {
 }
 
 /* ============================================
-   VOICE CHAT BUTTON FOR AI ASSISTANT
+   VOICE INPUT BUTTON FOR AI ASSISTANT
    ============================================ */
 
-.voice-chat-button {
-    position: fixed;
-    bottom: 90px;
-    right: 20px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-    cursor: pointer;
-    z-index: 1000;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
+.voice-input-button {
+    border-radius: 50% !important;
+    width: 50px !important;
+    height: 50px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.2rem !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    transition: all 0.3s ease !important;
 }
 
-.voice-chat-button:active {
-    transform: scale(0.95);
+.voice-input-button:active {
+    transform: scale(0.95) !important;
 }
 
-.voice-chat-button.listening {
-    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
-    animation: pulse-voice 1.5s infinite;
+.voice-input-button.listening {
+    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%) !important;
+    animation: pulse-voice 1.5s infinite !important;
 }
 
 @keyframes pulse-voice {
@@ -697,12 +691,10 @@ a {
 }
 
 @media (max-width: 767px) {
-    .voice-chat-button {
-        bottom: 80px;
-        right: 16px;
-        width: 52px;
-        height: 52px;
-        font-size: 1.2rem;
+    .voice-input-button {
+        width: 46px !important;
+        height: 46px !important;
+        font-size: 1.1rem !important;
     }
     
     .voice-status-indicator {
@@ -710,18 +702,6 @@ a {
         right: 16px;
         font-size: 0.8rem;
         padding: 8px 14px;
-    }
-}
-
-@media (min-width: 768px) {
-    .voice-chat-button {
-        bottom: 100px;
-        right: 30px;
-    }
-    
-    .voice-status-indicator {
-        bottom: 165px;
-        right: 30px;
     }
 }
 
