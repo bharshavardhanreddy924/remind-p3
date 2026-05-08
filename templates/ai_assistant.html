@@ -36,11 +36,25 @@
         
         <div class="chat-input mt-3">
             <div class="input-group">
-                <input type="text" id="user-input" class="form-control form-control-lg" placeholder="Type your question...">
+                <button class="btn btn-outline-secondary" id="voice-button" title="Voice Input">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <input type="text" id="user-input" class="form-control form-control-lg" placeholder="Type your question or use voice...">
                 <button class="btn btn-primary" id="send-button">
                     <i class="fas fa-paper-plane"></i>
                 </button>
+                <button class="btn btn-outline-info" id="speak-button" title="Read Last Response">
+                    <i class="fas fa-volume-up"></i>
+                </button>
             </div>
+            <small class="text-muted d-block mt-2">
+                <i class="fas fa-info-circle"></i>
+                {% if user.ui_mode == 'assisted' or user.ui_mode == 'simplified' %}
+                Voice features are enabled for easier interaction
+                {% else %}
+                Click microphone to speak or speaker to hear responses
+                {% endif %}
+            </small>
         </div>
         
         <div class="mt-3">
@@ -82,6 +96,163 @@
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
         const chatContainer = document.getElementById('chat-container');
+        const voiceButton = document.getElementById('voice-button');
+        const speakButton = document.getElementById('speak-button');
+        
+        // User severity level for adaptive features
+        const userUiMode = '{{ user.ui_mode if user.ui_mode else "normal" }}';
+        const autoVoiceEnabled = userUiMode === 'assisted' || userUiMode === 'simplified';
+        
+        let lastAssistantMessage = '';
+        let recognition = null;
+        let synthesis = window.speechSynthesis;
+        
+        // Initialize Speech Recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true; // Show interim results
+            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+            
+            let finalTranscript = '';
+            
+            recognition.onstart = function() {
+                console.log('Speech recognition started');
+                finalTranscript = '';
+                voiceButton.innerHTML = '<i class="fas fa-stop"></i> Listening...';
+                voiceButton.classList.remove('btn-outline-secondary');
+                voiceButton.classList.add('btn-danger');
+                userInput.placeholder = '🎤 Listening... Speak now!';
+            };
+            
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // Show interim results in input field
+                userInput.value = finalTranscript + interimTranscript;
+                
+                // If we have a final result, use it
+                if (finalTranscript) {
+                    userInput.value = finalTranscript;
+                    voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                    voiceButton.classList.remove('btn-danger');
+                    voiceButton.classList.add('btn-outline-secondary');
+                    userInput.placeholder = 'Type your question or use voice...';
+                    
+                    // Auto-send for assisted mode
+                    if (autoVoiceEnabled && finalTranscript.trim()) {
+                        setTimeout(() => sendMessage(), 500);
+                    }
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                let errorMessage = 'Voice input error. ';
+                
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMessage += 'No speech detected. Please try again.';
+                        break;
+                    case 'audio-capture':
+                        errorMessage += 'Microphone not found or not working.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage += 'Microphone permission denied. Please allow microphone access.';
+                        break;
+                    case 'network':
+                        errorMessage += 'Network error. Please check your connection.';
+                        break;
+                    default:
+                        errorMessage += event.error;
+                }
+                
+                alert(errorMessage);
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                voiceButton.classList.remove('btn-danger');
+                voiceButton.classList.add('btn-outline-secondary');
+                userInput.placeholder = 'Type your question or use voice...';
+            };
+            
+            recognition.onend = function() {
+                console.log('Speech recognition ended');
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                voiceButton.classList.remove('btn-danger');
+                voiceButton.classList.add('btn-outline-secondary');
+                userInput.placeholder = 'Type your question or use voice...';
+            };
+        } else {
+            voiceButton.disabled = true;
+            voiceButton.title = 'Voice input not supported in this browser';
+            console.warn('Speech recognition not supported in this browser');
+        }
+        
+        // Voice input button
+        voiceButton.addEventListener('click', function() {
+            if (!recognition) {
+                alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+                return;
+            }
+            
+            if (voiceButton.classList.contains('btn-danger')) {
+                // Stop listening
+                recognition.stop();
+                voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                voiceButton.classList.remove('btn-danger');
+                voiceButton.classList.add('btn-outline-secondary');
+                userInput.placeholder = 'Type your question or use voice...';
+            } else {
+                // Start listening
+                try {
+                    recognition.start();
+                } catch (error) {
+                    console.error('Error starting recognition:', error);
+                    alert('Could not start voice recognition. Please check microphone permissions.');
+                }
+            }
+        });
+        
+        // Speak button - read last response
+        speakButton.addEventListener('click', function() {
+            if (lastAssistantMessage) {
+                speakText(lastAssistantMessage);
+            }
+        });
+        
+        // Text-to-speech function
+        function speakText(text) {
+            // Cancel any ongoing speech
+            synthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = userUiMode === 'assisted' ? 0.8 : 0.9; // Slower for assisted mode
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            
+            // Visual feedback
+            speakButton.innerHTML = '<i class="fas fa-volume-up fa-beat"></i>';
+            speakButton.classList.add('btn-info');
+            speakButton.classList.remove('btn-outline-info');
+            
+            utterance.onend = function() {
+                speakButton.innerHTML = '<i class="fas fa-volume-up"></i>';
+                speakButton.classList.remove('btn-info');
+                speakButton.classList.add('btn-outline-info');
+            };
+            
+            synthesis.speak(utterance);
+        }
         
         // Quick question buttons
         document.querySelectorAll('.quick-question').forEach(button => {
@@ -137,6 +308,12 @@
                 
                 // Add AI response
                 addMessage(data.response, 'assistant');
+                lastAssistantMessage = data.response;
+                
+                // Auto-speak for assisted/simplified modes
+                if (autoVoiceEnabled && data.response) {
+                    setTimeout(() => speakText(data.response), 300);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -158,6 +335,14 @@
             // Scroll to bottom
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
+        
+        // Welcome message with voice for assisted/simplified modes
+        if (autoVoiceEnabled) {
+            setTimeout(() => {
+                const welcomeMsg = "Hello {{ user.name }}! I'm your AI memory assistant. How can I help you today?";
+                speakText(welcomeMsg);
+            }, 1000);
+        }
     });
 </script>
-{% endblock %} 
+{% endblock %}

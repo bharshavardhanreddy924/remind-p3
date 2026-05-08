@@ -25,7 +25,6 @@ app.permanent_session_lifetime = timedelta(days=7)
 
 # MongoDB Configuration
 from pymongo.mongo_client import MongoClient
-uri = "mongodb+srv://bharshavardhanreddy924:516474Ta@data-dine.5oghq.mongodb.net/?retryWrites=true&w=majority&ssl=true"
 
 try:
     client = MongoClient(uri, tlsCAFile=certifi.where())

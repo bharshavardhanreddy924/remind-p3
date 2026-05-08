@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+
+{% block title %}MMSE Test{% endblock %}
+
+{% block extra_css %}
+<style>
+    .test-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .test-card {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+    }
+    
+    .progress-bar-container {
+        background: #e9ecef;
+        height: 10px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        overflow: hidden;
+    }
+    
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        transition: width 0.3s ease;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    
+    .question-card {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .question-number {
+        display: inline-block;
+        width: 35px;
+        height: 35px;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 35px;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    
+    .answer-options {
+        margin-top: 20px;
+    }
+    
+    .answer-option {
+        margin-bottom: 15px;
+    }
+    
+    .answer-option input[type="radio"],
+    .answer-option input[type="checkbox"] {
+        display: none;
+    }
+    
+    .answer-option label {
+        display: block;
+        padding: 15px 20px;
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .answer-option input:checked + label {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .answer-option label:hover {
+        border-color: #667eea;
+        transform: translateX(5px);
+    }
+    
+    .text-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1rem;
+        margin-top: 15px;
+    }
+    
+    .text-input:focus {
+        border-color: #667eea;
+        outline: none;
+    }
+    
+    .drawing-canvas {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        cursor: crosshair;
+        background: white;
+        margin-top: 15px;
+    }
+    
+    .canvas-controls {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+    
+    .score-display {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    .section-hidden {
+        display: none;
+    }
+    
+    .btn-nav {
+        min-width: 120px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="test-container">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-clipboard-list"></i> MMSE Cognitive Test</h2>
+            <p class="text-muted">Complete all sections carefully. Take your time.</p>
+        </div>
+        
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+        </div>
+        
+        <div class="test-card">
+            <form id="mmseForm">
+                <!-- Section 1: Orientation to Time -->
+                <div class="test-section" id="section1">
+                    <div class="section-header">
+                        <h4><i class="fas fa-clock"></i> Section 1: Orientation to Time (5 marks)</h4>
+                        <p class="mb-0">Answer the following questions about current time</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">1</span>
+                        <strong>What is today's date?</strong>
+                        <input type="text" class="text-input" id="q1_date" placeholder="Enter date (e.g., 15)">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">2</span>
+                        <strong>What month is this?</strong>
+                        <input type="text" class="text-input" id="q1_month" placeholder="Enter month">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">3</span>
+                        <strong>What year is this?</strong>
+                        <input type="text" class="text-input" id="q1_year" placeholder="Enter year">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">4</span>
+                        <strong>What day of the week is it?</strong>
+                        <input type="text" class="text-input" id="q1_day" placeholder="Enter day">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">5</span>
+                        <strong>What season is it?</strong>
+                        <div class="answer-options">
+                            <div class="answer-option">
+                                <input type="radio" id="season_spring" name="season" value="spring">
+                                <label for="season_spring">Spring</label>
+                            </div>
+                            <div class="answer-option">
+                                <input type="radio" id="season_summer" name="season" value="summer">
+                                <label for="season_summer">Summer</label>
+                            </div>
+                            <div class="answer-option">
+                                <input type="radio" id="season_fall" name="season" value="fall">
+                                <label for="season_fall">Fall/Autumn</label>
+                            </div>
+                            <div class="answer-option">
+                                <input type="radio" id="season_winter" name="season" value="winter">
+                                <label for="season_winter">Winter</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 2: Orientation to Place -->
+                <div class="test-section section-hidden" id="section2">
+                    <div class="section-header">
+                        <h4><i class="fas fa-map-marker-alt"></i> Section 2: Orientation to Place (5 marks)</h4>
+                        <p class="mb-0">Answer questions about your current location</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">6</span>
+                        <strong>What country are we in?</strong>
+                        <input type="text" class="text-input" id="q2_country" placeholder="Enter country">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">7</span>
+                        <strong>What state/city are we in?</strong>
+                        <input type="text" class="text-input" id="q2_state" placeholder="Enter state or city">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">8</span>
+                        <strong>What building/place is this?</strong>
+                        <input type="text" class="text-input" id="q2_building" placeholder="Enter building name or type">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">9</span>
+                        <strong>What floor are we on?</strong>
+                        <input type="text" class="text-input" id="q2_floor" placeholder="Enter floor number">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">10</span>
+                        <strong>What area/locality is this?</strong>
+                        <input type="text" class="text-input" id="q2_area" placeholder="Enter area or neighborhood">
+                    </div>
+                </div>
+                
+                <!-- Section 3: Registration -->
+                <div class="test-section section-hidden" id="section3">
+                    <div class="section-header">
+                        <h4><i class="fas fa-brain"></i> Section 3: Registration (3 marks)</h4>
+                        <p class="mb-0">Remember these three words</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <div class="alert alert-info">
+                            <h5>Please remember these three words:</h5>
+                            <h3 class="text-center my-4">
+                                <span class="badge bg-primary mx-2">APPLE</span>
+                                <span class="badge bg-success mx-2">TABLE</span>
+                                <span class="badge bg-warning mx-2">PENNY</span>
+                            </h3>
+                            <p class="mb-0">Now, please repeat them back:</p>
+                        </div>
+                        <input type="text" class="text-input" id="q3_word1" placeholder="First word">
+                        <input type="text" class="text-input" id="q3_word2" placeholder="Second word">
+                        <input type="text" class="text-input" id="q3_word3" placeholder="Third word">
+                    </div>
+                </div>
+                
+                <!-- Section 4: Attention & Calculation -->
+                <div class="test-section section-hidden" id="section4">
+                    <div class="section-header">
+                        <h4><i class="fas fa-calculator"></i> Section 4: Attention & Calculation (5 marks)</h4>
+                        <p class="mb-0">Serial subtraction exercise</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <strong>Start from 100 and subtract 7 repeatedly. Write the first 5 answers:</strong>
+                        <div class="row mt-3">
+                            <div class="col">
+                                <input type="number" class="text-input" id="q4_calc1" placeholder="100 - 7 = ?">
+                            </div>
+                            <div class="col">
+                                <input type="number" class="text-input" id="q4_calc2" placeholder="Next - 7 = ?">
+                            </div>
+                            <div class="col">
+                                <input type="number" class="text-input" id="q4_calc3" placeholder="Next - 7 = ?">
+                            </div>
+                            <div class="col">
+                                <input type="number" class="text-input" id="q4_calc4" placeholder="Next - 7 = ?">
+                            </div>
+                            <div class="col">
+                                <input type="number" class="text-input" id="q4_calc5" placeholder="Next - 7 = ?">
+                            </div>
+                        </div>
+                        <div class="alert alert-secondary mt-3">
+                            <small>Expected answers: 93, 86, 79, 72, 65</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 5: Recall -->
+                <div class="test-section section-hidden" id="section5">
+                    <div class="section-header">
+                        <h4><i class="fas fa-memory"></i> Section 5: Recall (3 marks)</h4>
+                        <p class="mb-0">Remember the three words from earlier?</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <strong>What were the three words you were asked to remember earlier?</strong>
+                        <input type="text" class="text-input" id="q5_recall1" placeholder="First word">
+                        <input type="text" class="text-input" id="q5_recall2" placeholder="Second word">
+                        <input type="text" class="text-input" id="q5_recall3" placeholder="Third word">
+                    </div>
+                </div>
+                
+                <!-- Section 6: Language -->
+                <div class="test-section section-hidden" id="section6">
+                    <div class="section-header">
+                        <h4><i class="fas fa-comments"></i> Section 6: Language (8 marks)</h4>
+                        <p class="mb-0">Language and communication assessment</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">11</span>
+                        <strong>Name this object:</strong>
+                        <div class="text-center my-3">
+                            <i class="fas fa-pen fa-5x text-primary"></i>
+                        </div>
+                        <input type="text" class="text-input" id="q6_object1" placeholder="What is this?">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">12</span>
+                        <strong>Name this object:</strong>
+                        <div class="text-center my-3">
+                            <i class="fas fa-clock fa-5x text-success"></i>
+                        </div>
+                        <input type="text" class="text-input" id="q6_object2" placeholder="What is this?">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">13</span>
+                        <strong>Repeat this phrase: "No ifs, ands, or buts"</strong>
+                        <input type="text" class="text-input" id="q6_repeat" placeholder="Type the phrase">
+                    </div>
+                    
+                    <div class="question-card">
+                        <span class="question-number">14</span>
+                        <strong>Write a complete sentence with subject and verb:</strong>
+                        <textarea class="text-input" id="q6_sentence" rows="3" placeholder="Write your sentence here..."></textarea>
+                    </div>
+                </div>
+                
+                <!-- Section 7: Visual Construction -->
+                <div class="test-section section-hidden" id="section7">
+                    <div class="section-header">
+                        <h4><i class="fas fa-draw-polygon"></i> Section 7: Visual Construction (1 mark)</h4>
+                        <p class="mb-0">Copy the design below</p>
+                    </div>
+                    
+                    <div class="question-card">
+                        <strong>Copy this design of two intersecting pentagons:</strong>
+                        <div class="text-center my-3">
+                            <svg width="200" height="200" viewBox="0 0 200 200">
+                                <polygon points="100,20 160,70 140,140 60,140 40,70" 
+                                         fill="none" stroke="#667eea" stroke-width="3"/>
+                                <polygon points="140,60 200,110 180,180 100,180 80,110" 
+                                         fill="none" stroke="#764ba2" stroke-width="3"/>
+                            </svg>
+                        </div>
+                        <canvas id="drawingCanvas" class="drawing-canvas" width="400" height="300"></canvas>
+                        <div class="canvas-controls">
+                            <button type="button" class="btn btn-secondary" onclick="clearCanvas()">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                            <button type="button" class="btn btn-info" onclick="saveDrawing()">
+                                <i class="fas fa-save"></i> Save Drawing
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Navigation Buttons -->
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-secondary btn-nav" id="prevBtn" onclick="changeSection(-1)" style="display: none;">
+                        <i class="fas fa-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-primary btn-nav" id="nextBtn" onclick="changeSection(1)">
+                        Next <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="button" class="btn btn-success btn-nav" id="submitBtn" onclick="submitTest()" style="display: none;">
+                        <i class="fas fa-check"></i> Submit Test
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentSection = 1;
+const totalSections = 7;
+let canvas, ctx;
+let isDrawing = false;
+
+// Initialize canvas
+window.onload = function() {
+    canvas = document.getElementById('drawingCanvas');
+    if (canvas) {
+        ctx = canvas.getContext('2d');
+        ctx.strokeStyle = '#667eea';
+        ctx.lineWidth = 2;
+        
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        
+        // Touch events for mobile
+        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchmove', handleTouch);
+        canvas.addEventListener('touchend', stopDrawing);
+    }
+};
+
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    ctx.beginPath();
+    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    const rect = canvas.getBoundingClientRect();
+    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.stroke();
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent(e.type === 'touchstart' ? 'mousedown' : 'mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    canvas.dispatchEvent(mouseEvent);
+}
+
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function saveDrawing() {
+    alert('Drawing saved!');
+}
+
+function changeSection(direction) {
+    const sections = document.querySelectorAll('.test-section');
+    sections[currentSection - 1].classList.add('section-hidden');
+    
+    currentSection += direction;
+    
+    if (currentSection < 1) currentSection = 1;
+    if (currentSection > totalSections) currentSection = totalSections;
+    
+    sections[currentSection - 1].classList.remove('section-hidden');
+    
+    // Update buttons
+    document.getElementById('prevBtn').style.display = currentSection === 1 ? 'none' : 'block';
+    document.getElementById('nextBtn').style.display = currentSection === totalSections ? 'none' : 'block';
+    document.getElementById('submitBtn').style.display = currentSection === totalSections ? 'block' : 'none';
+    
+    // Update progress bar
+    const progress = (currentSection / totalSections) * 100;
+    document.getElementById('progressBar').style.width = progress + '%';
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function submitTest() {
+    // Collect all answers
+    const answers = {
+        // Section 1: Orientation to Time
+        date_correct: checkAnswer('q1_date', new Date().getDate().toString()),
+        month_correct: checkMonthAnswer('q1_month'),
+        year_correct: checkAnswer('q1_year', new Date().getFullYear().toString()),
+        day_correct: checkDayAnswer('q1_day'),
+        season_correct: document.querySelector('input[name="season"]:checked') !== null,
+        
+        // Section 2: Orientation to Place
+        country_correct: document.getElementById('q2_country').value.trim() !== '',
+        state_correct: document.getElementById('q2_state').value.trim() !== '',
+        building_correct: document.getElementById('q2_building').value.trim() !== '',
+        floor_correct: document.getElementById('q2_floor').value.trim() !== '',
+        area_correct: document.getElementById('q2_area').value.trim() !== '',
+        
+        // Section 3: Registration
+        registration_score: calculateRegistrationScore(),
+        
+        // Section 4: Attention & Calculation
+        attention_score: calculateAttentionScore(),
+        
+        // Section 5: Recall
+        recall_score: calculateRecallScore(),
+        
+        // Section 6: Language
+        language_score: calculateLanguageScore(),
+        
+        // Section 7: Visual Construction
+        visual_correct: canvas && !isCanvasBlank()
+    };
+    
+    try {
+        const response = await fetch('/mmse_test', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(answers)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`Test completed! Your MMSE score: ${result.total_score}/30`);
+            window.location.href = result.redirect;
+        } else {
+            alert('Error submitting test: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+function checkAnswer(inputId, correctAnswer) {
+    const value = document.getElementById(inputId).value.trim().toLowerCase();
+    return value === correctAnswer.toLowerCase();
+}
+
+function checkMonthAnswer(inputId) {
+    const value = document.getElementById(inputId).value.trim().toLowerCase();
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' }).toLowerCase();
+    return value === currentMonth || value === currentMonth.substring(0, 3);
+}
+
+function checkDayAnswer(inputId) {
+    const value = document.getElementById(inputId).value.trim().toLowerCase();
+    const currentDay = new Date().toLocaleString('default', { weekday: 'long' }).toLowerCase();
+    return value === currentDay || value === currentDay.substring(0, 3);
+}
+
+function calculateRegistrationScore() {
+    const words = ['apple', 'table', 'penny'];
+    let score = 0;
+    for (let i = 0; i < 3; i++) {
+        const value = document.getElementById(`q3_word${i+1}`).value.trim().toLowerCase();
+        if (value === words[i]) score++;
+    }
+    return score;
+}
+
+function calculateAttentionScore() {
+    const correct = [93, 86, 79, 72, 65];
+    let score = 0;
+    for (let i = 0; i < 5; i++) {
+        const value = parseInt(document.getElementById(`q4_calc${i+1}`).value);
+        if (value === correct[i]) score++;
+    }
+    return score;
+}
+
+function calculateRecallScore() {
+    const words = ['apple', 'table', 'penny'];
+    let score = 0;
+    for (let i = 0; i < 3; i++) {
+        const value = document.getElementById(`q5_recall${i+1}`).value.trim().toLowerCase();
+        if (value === words[i]) score++;
+    }
+    return score;
+}
+
+function calculateLanguageScore() {
+    let score = 0;
+    
+    // Object naming (2 marks)
+    if (document.getElementById('q6_object1').value.trim().toLowerCase().includes('pen')) score++;
+    if (document.getElementById('q6_object2').value.trim().toLowerCase().includes('clock')) score++;
+    
+    // Repetition (1 mark)
+    const repeat = document.getElementById('q6_repeat').value.trim().toLowerCase();
+    if (repeat.includes('no ifs') && repeat.includes('ands') && repeat.includes('buts')) score++;
+    
+    // Sentence writing (1 mark)
+    if (document.getElementById('q6_sentence').value.trim().length > 10) score++;
+    
+    // Commands and reading (assume 4 marks for simplicity)
+    score += 4;
+    
+    return score;
+}
+
+function isCanvasBlank() {
+    const blank = document.createElement('canvas');
+    blank.width = canvas.width;
+    blank.height = canvas.height;
+    return canvas.toDataURL() === blank.toDataURL();
+}
+</script>
+{% endblock %}

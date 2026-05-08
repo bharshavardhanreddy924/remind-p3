@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}MMSE Cognitive Assessment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .assessment-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .assessment-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        transition: transform 0.3s;
+    }
+    
+    .assessment-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 40px;
+        position: relative;
+    }
+    
+    .step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+    
+    .step-number {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #e9ecef;
+        color: #6c757d;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+    }
+    
+    .step.active .step-number {
+        background: #667eea;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #28a745;
+        color: white;
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        color: #667eea;
+        margin-bottom: 20px;
+    }
+    
+    .info-box {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="assessment-hero">
+        <h1><i class="fas fa-brain"></i> MMSE Cognitive Assessment</h1>
+        <p class="lead">Comprehensive cognitive evaluation and personalized care planning</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="assessment-card">
+                <h3><i class="fas fa-info-circle"></i> About This Assessment</h3>
+                <p>The Mini-Mental State Examination (MMSE) is a comprehensive cognitive assessment tool that evaluates:</p>
+                <ul>
+                    <li><strong>Orientation:</strong> Time and place awareness</li>
+                    <li><strong>Memory:</strong> Registration and recall abilities</li>
+                    <li><strong>Attention:</strong> Concentration and calculation skills</li>
+                    <li><strong>Language:</strong> Communication and comprehension</li>
+                    <li><strong>Visual-Spatial:</strong> Construction abilities</li>
+                </ul>
+                
+                <div class="info-box">
+                    <h5><i class="fas fa-clock"></i> Assessment Process</h5>
+                    <p><strong>Duration:</strong> 20-30 minutes<br>
+                    <strong>Scoring:</strong> 0-30 points<br>
+                    <strong>Components:</strong> MMSE Test + Caregiver Observations + Cognitive Tasks</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="assessment-card text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <h4>Step 1: Onboarding</h4>
+                <p>Provide basic information and medical history</p>
+                <a href="{{ url_for('mmse_onboarding') }}" class="btn btn-primary btn-lg mt-3">
+                    <i class="fas fa-arrow-right"></i> Start Onboarding
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="assessment-card text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h4>Step 2: MMSE Test</h4>
+                <p>Complete the 30-point cognitive assessment</p>
+                <a href="{{ url_for('mmse_test') }}" class="btn btn-secondary btn-lg mt-3">
+                    <i class="fas fa-arrow-right"></i> Take Test
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="assessment-card text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4>Step 3: View Results</h4>
+                <p>Get personalized recommendations and track progress</p>
+                <a href="{{ url_for('progress_dashboard') }}" class="btn btn-success btn-lg mt-3">
+                    <i class="fas fa-arrow-right"></i> View Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="assessment-card">
+                <h3><i class="fas fa-graduation-cap"></i> What to Expect</h3>
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-check-circle text-success"></i> Assessment Includes:</h5>
+                        <ul>
+                            <li>Orientation questions (10 points)</li>
+                            <li>Memory tests (6 points)</li>
+                            <li>Attention exercises (5 points)</li>
+                            <li>Language evaluation (8 points)</li>
+                            <li>Visual construction (1 point)</li>
+                            <li>Caregiver observations</li>
+                            <li>Cognitive task performance</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-star text-warning"></i> You Will Receive:</h5>
+                        <ul>
+                            <li>Detailed cognitive profile</li>
+                            <li>Severity classification (Mild/Moderate/Severe)</li>
+                            <li>Personalized UI adaptation</li>
+                            <li>Therapy recommendations</li>
+                            <li>Progress tracking dashboard</li>
+                            <li>Improvement analytics</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -40,6 +40,11 @@
                             <i class="fas fa-sticky-note me-1"></i> Notes
                         </button>
                     </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab" aria-controls="progress" aria-selected="false">
+                            <i class="fas fa-chart-line me-1"></i> Progress & MMSE
+                        </button>
+                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -157,9 +162,138 @@
                             </button>
                         </form>
                     </div>
+                    
+                    <!-- Progress & MMSE Tab -->
+                    <div class="tab-pane fade" id="progress" role="tabpanel" aria-labelledby="progress-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="mb-0">Cognitive Progress Tracking</h4>
+                            {% if severity_data %}
+                            <span class="badge bg-{% if severity_data.get('severity_level') == 'mild' %}success{% elif severity_data.get('severity_level') == 'moderate' %}warning{% else %}danger{% endif %} fs-6">
+                                Current Status: {{ severity_data.get('severity_level', 'Unknown')|title }} ({{ severity_data.get('ui_profile', 'N/A') }})
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if progress_data %}
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Latest Score</h6>
+                                            <h2 class="mb-0">{{ progress_data.latest_score }}/30</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Previous Score</h6>
+                                            <h2 class="mb-0">{{ progress_data.previous_score }}/30</h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Change</h6>
+                                            <h2 class="mb-0 {% if progress_data.improvement > 0 %}text-success{% elif progress_data.improvement < 0 %}text-danger{% endif %}">
+                                                {% if progress_data.improvement > 0 %}+{% endif %}{{ progress_data.improvement }}
+                                            </h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h6 class="text-muted">Improvement</h6>
+                                            <h2 class="mb-0 {% if progress_data.improvement_pct > 0 %}text-success{% elif progress_data.improvement_pct < 0 %}text-danger{% endif %}">
+                                                {% if progress_data.improvement_pct > 0 %}+{% endif %}{{ "%.1f"|format(progress_data.improvement_pct) }}%
+                                            </h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if mmse_assessments %}
+                            <h5 class="mb-4 mt-5">MMSE Test History</h5>
+                            <div class="table-responsive mb-5">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Total Score</th>
+                                            <th>Orientation</th>
+                                            <th>Registration</th>
+                                            <th>Attention</th>
+                                            <th>Recall</th>
+                                            <th>Language</th>
+                                            <th>Visual</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for assessment in mmse_assessments %}
+                                        <tr>
+                                            <td>{{ assessment.get('test_date').strftime('%Y-%m-%d %H:%M') if assessment.get('test_date') else 'N/A' }}</td>
+                                            <td><strong>{{ assessment.get('total_score', 0) }}/30</strong></td>
+                                            <td>{{ assessment.get('time_score', 0) + assessment.get('place_score', 0) }}/10</td>
+                                            <td>{{ assessment.get('registration_score', 0) }}/3</td>
+                                            <td>{{ assessment.get('attention_score', 0) }}/5</td>
+                                            <td>{{ assessment.get('recall_score', 0) }}/3</td>
+                                            <td>{{ assessment.get('language_score', 0) }}/8</td>
+                                            <td>{{ assessment.get('visual_score', 0) }}/1</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                        
+                        {% if severity_assessments %}
+                            <h5 class="mb-3">Detailed Severity Assessment History</h5>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>MMSE Score</th>
+                                            <th>Observation Score</th>
+                                            <th>Task Score</th>
+                                            <th>Final Score</th>
+                                            <th>Severity</th>
+                                            <th>UI Profile</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for severity in severity_assessments %}
+                                        <tr>
+                                            <td>{{ severity.get('assessment_date').strftime('%Y-%m-%d %H:%M') if severity.get('assessment_date') else 'N/A' }}</td>
+                                            <td>{{ "%.1f"|format(severity.get('mmse_score', 0)) }}</td>
+                                            <td>{{ "%.1f"|format(severity.get('observation_score', 0)) }}</td>
+                                            <td>{{ "%.1f"|format(severity.get('task_score', 0)) }}</td>
+                                            <td><strong>{{ "%.1f"|format(severity.get('final_score', 0)) }}</strong></td>
+                                            <td>
+                                                <span class="badge bg-{% if severity.get('severity_level') == 'mild' %}success{% elif severity.get('severity_level') == 'moderate' %}warning{% else %}danger{% endif %}">
+                                                    {{ severity.get('severity_level', 'Unknown')|title }}
+                                                </span>
+                                            </td>
+                                            <td>{{ severity.get('ui_profile', 'N/A') }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <h5>No progress data yet</h5>
+                                <p>Patient needs to complete at least one MMSE assessment</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

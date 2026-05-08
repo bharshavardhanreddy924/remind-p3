@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+
+{% block title %}Progress Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        height: 100%;
+    }
+    
+    .stat-icon {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #667eea;
+        display: block;
+        margin: 10px 0;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .chart-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    
+    .trend-indicator {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    
+    .trend-improving {
+        background: #d4edda;
+        color: #155724;
+    }
+    
+    .trend-stable {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .trend-declining {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-left: 50px;
+        padding-bottom: 30px;
+    }
+    
+    .timeline-item:before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: -30px;
+        width: 2px;
+        background: #e9ecef;
+    }
+    
+    .timeline-item:last-child:before {
+        display: none;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #667eea;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .score-history-table {
+        width: 100%;
+        margin-top: 20px;
+    }
+    
+    .score-history-table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    .score-history-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .progress-bar-custom {
+        height: 30px;
+        border-radius: 15px;
+        background: #e9ecef;
+        overflow: hidden;
+        margin: 10px 0;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        transition: width 0.3s ease;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-chart-line"></i> Cognitive Progress Dashboard</h1>
+            <p class="lead mb-0">Track your cognitive health journey over time</p>
+        </div>
+        
+        {% if severity_history %}
+        <!-- Summary Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-brain" style="color: #667eea;"></i>
+                    </div>
+                    <span class="stat-label">Latest Score</span>
+                    <span class="stat-value">{{ severity_history[-1].severity_score }}</span>
+                    <small class="text-muted">out of 30</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clipboard-check" style="color: #28a745;"></i>
+                    </div>
+                    <span class="stat-label">Assessments</span>
+                    <span class="stat-value">{{ severity_history|length }}</span>
+                    <small class="text-muted">completed</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-cog" style="color: #ffc107;"></i>
+                    </div>
+                    <span class="stat-label">Current Level</span>
+                    <span class="stat-value" style="font-size: 1.5rem;">{{ severity_history[-1].severity_level }}</span>
+                    <small class="text-muted">{{ severity_history[-1].profile }}</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        {% if improvement_data %}
+                            {% if improvement_data.trend == 'improving' %}
+                            <i class="fas fa-arrow-up" style="color: #28a745;"></i>
+                            {% elif improvement_data.trend == 'declining' %}
+                            <i class="fas fa-arrow-down" style="color: #dc3545;"></i>
+                            {% else %}
+                            <i class="fas fa-minus" style="color: #ffc107;"></i>
+                            {% endif %}
+                        {% else %}
+                        <i class="fas fa-chart-bar" style="color: #6c757d;"></i>
+                        {% endif %}
+                    </div>
+                    <span class="stat-label">Trend</span>
+                    {% if improvement_data %}
+                    <span class="stat-value" style="font-size: 1.8rem;">{{ improvement_data.improvement_percent }}%</span>
+                    <span class="trend-indicator trend-{{ improvement_data.trend }}">
+                        {{ improvement_data.trend|title }}
+                    </span>
+                    {% else %}
+                    <span class="stat-value" style="font-size: 1.5rem;">N/A</span>
+                    <small class="text-muted">Need more data</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Score Breakdown Chart -->
+        <div class="chart-card">
+            <h4><i class="fas fa-chart-bar"></i> Latest Assessment Breakdown</h4>
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <h6>MMSE Score</h6>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: {{ (severity_history[-1].mmse_score / 30 * 100)|round }}%">
+                            {{ severity_history[-1].mmse_score }}/30
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Caregiver Observations</h6>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: {{ (severity_history[-1].observation_score / 30 * 100)|round }}%">
+                            {{ severity_history[-1].observation_score }}/30
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Cognitive Tasks</h6>
+                    <div class="progress-bar-custom">
+                        <div class="progress-fill" style="width: {{ (severity_history[-1].task_score / 30 * 100)|round }}%">
+                            {{ severity_history[-1].task_score|round(1) }}/30
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assessment History Timeline -->
+        <div class="chart-card">
+            <h4><i class="fas fa-history"></i> Assessment History</h4>
+            <div class="timeline">
+                {% for assessment in severity_history|reverse %}
+                <div class="timeline-item">
+                    <div class="timeline-marker">{{ loop.revindex }}</div>
+                    <div class="timeline-content">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5>Assessment #{{ loop.revindex }}</h5>
+                                <p class="text-muted mb-2">
+                                    <i class="fas fa-calendar"></i> 
+                                    {{ assessment.assessment_date.strftime('%B %d, %Y at %I:%M %p') }}
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <div class="stat-value" style="font-size: 2rem;">{{ assessment.severity_score }}</div>
+                                <span class="badge bg-{% if assessment.severity_level == 'Mild' %}success{% elif assessment.severity_level == 'Moderate' %}warning{% else %}danger{% endif %}">
+                                    {{ assessment.severity_level }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-4">
+                                <small class="text-muted">MMSE</small><br>
+                                <strong>{{ assessment.mmse_score }}</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Observations</small><br>
+                                <strong>{{ assessment.observation_score }}</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Tasks</small><br>
+                                <strong>{{ assessment.task_score|round(1) }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- MMSE Score History -->
+        {% if mmse_history %}
+        <div class="chart-card">
+            <h4><i class="fas fa-brain"></i> MMSE Score History</h4>
+            <table class="score-history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Total Score</th>
+                        <th>Orientation</th>
+                        <th>Memory</th>
+                        <th>Attention</th>
+                        <th>Language</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mmse in mmse_history|reverse %}
+                    <tr>
+                        <td>{{ mmse.test_date.strftime('%b %d, %Y') }}</td>
+                        <td><strong>{{ mmse.total_score }}/30</strong></td>
+                        <td>{{ mmse.time_score + mmse.place_score }}/10</td>
+                        <td>{{ mmse.registration_score + mmse.recall_score }}/6</td>
+                        <td>{{ mmse.attention_score }}/5</td>
+                        <td>{{ mmse.language_score }}/8</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        
+        <!-- Recommendations -->
+        <div class="chart-card">
+            <h4><i class="fas fa-lightbulb"></i> Recommendations</h4>
+            <div class="alert alert-info">
+                <h5><i class="fas fa-info-circle"></i> Continue Your Progress</h5>
+                <ul class="mb-0">
+                    <li>Take regular assessments to track your cognitive health</li>
+                    <li>Follow personalized therapy recommendations</li>
+                    <li>Engage in daily cognitive exercises</li>
+                    <li>Maintain regular communication with your caregiver</li>
+                    <li>Schedule follow-up assessments every 3-6 months</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="d-grid">
+                    <a href="{{ url_for('mmse_onboarding') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-redo"></i> Take New Assessment
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="d-grid">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-home"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Empty State -->
+        <div class="chart-card">
+            <div class="empty-state">
+                <i class="fas fa-chart-line"></i>
+                <h4>No Assessment Data Yet</h4>
+                <p>Complete your first MMSE assessment to start tracking your cognitive progress.</p>
+                <a href="{{ url_for('mmse_onboarding') }}" class="btn btn-primary btn-lg mt-3">
+                    <i class="fas fa-play"></i> Start First Assessment
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

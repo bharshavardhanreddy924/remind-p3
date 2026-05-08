@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}Cognitive Tasks{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tasks-container {
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+    
+    .task-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+    }
+    
+    .game-area {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 30px;
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .memory-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 100px);
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .memory-card {
+        width: 100px;
+        height: 100px;
+        background: #667eea;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+    
+    .memory-card.flipped {
+        background: white;
+        border: 3px solid #667eea;
+    }
+    
+    .memory-card.matched {
+        background: #28a745;
+        cursor: default;
+    }
+    
+    .memory-card:hover:not(.matched) {
+        transform: scale(1.05);
+    }
+    
+    .sequence-display {
+        display: flex;
+        gap: 15px;
+        margin: 20px 0;
+    }
+    
+    .sequence-item {
+        width: 80px;
+        height: 80px;
+        background: #667eea;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .sequence-item.active {
+        animation: pulse 0.5s;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+    
+    .score-panel {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .score-item {
+        display: inline-block;
+        margin: 0 20px;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+        font-weight: bold;
+        display: block;
+    }
+    
+    .timer {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #667eea;
+        margin: 20px 0;
+    }
+    
+    .task-instructions {
+        background: #e7f3ff;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .btn-game {
+        min-width: 150px;
+        margin: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="tasks-container">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-gamepad"></i> Cognitive Task Assessment</h2>
+            <p class="text-muted">Complete these interactive exercises to assess cognitive performance</p>
+        </div>
+        
+        <!-- Score Panel -->
+        <div class="score-panel">
+            <div class="score-item">
+                <span class="score-label">Accuracy</span>
+                <span class="score-value" id="accuracy">0%</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Tasks Completed</span>
+                <span class="score-value" id="completed">0/3</span>
+            </div>
+            <div class="score-item">
+                <span class="score-label">Time</span>
+                <span class="score-value" id="totalTime">0s</span>
+            </div>
+        </div>
+        
+        <!-- Task 1: Memory Card Matching -->
+        <div class="task-card" id="task1">
+            <h4><i class="fas fa-th"></i> Task 1: Memory Card Matching</h4>
+            <div class="task-instructions">
+                <strong>Instructions:</strong> Find all matching pairs of cards. Click on cards to flip them and remember their positions.
+            </div>
+            
+            <div class="game-area">
+                <div class="timer" id="timer1">Time: 0s</div>
+                <div class="memory-grid" id="memoryGrid"></div>
+                <button class="btn btn-primary btn-game" onclick="startMemoryGame()">
+                    <i class="fas fa-play"></i> Start Game
+                </button>
+            </div>
+        </div>
+        
+        <!-- Task 2: Sequence Memory -->
+        <div class="task-card" id="task2" style="display: none;">
+            <h4><i class="fas fa-sort-numeric-up"></i> Task 2: Sequence Memory</h4>
+            <div class="task-instructions">
+                <strong>Instructions:</strong> Watch the sequence of numbers, then repeat it in the correct order.
+            </div>
+            
+            <div class="game-area">
+                <div class="timer" id="timer2">Time: 0s</div>
+                <div class="sequence-display" id="sequenceDisplay"></div>
+                <div id="sequenceInput" style="display: none;">
+                    <input type="text" class="form-control text-center" id="sequenceAnswer" 
+                           placeholder="Enter the sequence (e.g., 1234)" style="font-size: 1.5rem; max-width: 300px;">
+                    <button class="btn btn-success btn-game mt-3" onclick="checkSequence()">
+                        <i class="fas fa-check"></i> Submit
+                    </button>
+                </div>
+                <button class="btn btn-primary btn-game" id="startSequence" onclick="startSequenceGame()">
+                    <i class="fas fa-play"></i> Start Game
+                </button>
+            </div>
+        </div>
+        
+        <!-- Task 3: Pattern Recognition -->
+        <div class="task-card" id="task3" style="display: none;">
+            <h4><i class="fas fa-shapes"></i> Task 3: Pattern Recognition</h4>
+            <div class="task-instructions">
+                <strong>Instructions:</strong> Identify which shape is different from the others.
+            </div>
+            
+            <div class="game-area">
+                <div class="timer" id="timer3">Time: 0s</div>
+                <div id="patternDisplay" class="d-flex gap-3 flex-wrap justify-content-center my-4"></div>
+                <button class="btn btn-primary btn-game" id="startPattern" onclick="startPatternGame()">
+                    <i class="fas fa-play"></i> Start Game
+                </button>
+            </div>
+        </div>
+        
+        <!-- Submit Button -->
+        <div class="text-center mt-4" id="submitSection" style="display: none;">
+            <button class="btn btn-success btn-lg px-5" onclick="submitTasks()">
+                <i class="fas fa-check-circle"></i> Complete Assessment
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let taskScores = {
+    task1: { completed: false, accuracy: 0, time: 0 },
+    task2: { completed: false, accuracy: 0, time: 0 },
+    task3: { completed: false, accuracy: 0, time: 0 }
+};
+
+let currentTimer = null;
+let startTime = 0;
+
+// Memory Card Game
+const cardSymbols = ['🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑'];
+let memoryCards = [];
+let flippedCards = [];
+let matchedPairs = 0;
+
+function startMemoryGame() {
+    matchedPairs = 0;
+    flippedCards = [];
+    startTime = Date.now();
+    
+    // Create card pairs
+    memoryCards = [...cardSymbols, ...cardSymbols]
+        .sort(() => Math.random() - 0.5)
+        .map((symbol, index) => ({ id: index, symbol, flipped: false, matched: false }));
+    
+    renderMemoryGrid();
+    startTimer('timer1');
+}
+
+function renderMemoryGrid() {
+    const grid = document.getElementById('memoryGrid');
+    grid.innerHTML = '';
+    
+    memoryCards.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'memory-card';
+        if (card.flipped || card.matched) {
+            cardEl.classList.add('flipped');
+            cardEl.textContent = card.symbol;
+        }
+        if (card.matched) {
+            cardEl.classList.add('matched');
+        }
+        cardEl.onclick = () => flipCard(index);
+        grid.appendChild(cardEl);
+    });
+}
+
+function flipCard(index) {
+    if (flippedCards.length >= 2 || memoryCards[index].matched || memoryCards[index].flipped) return;
+    
+    memoryCards[index].flipped = true;
+    flippedCards.push(index);
+    renderMemoryGrid();
+    
+    if (flippedCards.length === 2) {
+        setTimeout(checkMatch, 1000);
+    }
+}
+
+function checkMatch() {
+    const [idx1, idx2] = flippedCards;
+    
+    if (memoryCards[idx1].symbol === memoryCards[idx2].symbol) {
+        memoryCards[idx1].matched = true;
+        memoryCards[idx2].matched = true;
+        matchedPairs++;
+        
+        if (matchedPairs === cardSymbols.length) {
+            completeTask('task1', 100);
+        }
+    } else {
+        memoryCards[idx1].flipped = false;
+        memoryCards[idx2].flipped = false;
+    }
+    
+    flippedCards = [];
+    renderMemoryGrid();
+}
+
+// Sequence Memory Game
+let currentSequence = [];
+let sequenceLevel = 4;
+
+function startSequenceGame() {
+    currentSequence = Array.from({length: sequenceLevel}, () => Math.floor(Math.random() * 9) + 1);
+    startTime = Date.now();
+    startTimer('timer2');
+    
+    document.getElementById('startSequence').style.display = 'none';
+    showSequence();
+}
+
+function showSequence() {
+    const display = document.getElementById('sequenceDisplay');
+    display.innerHTML = '';
+    
+    currentSequence.forEach((num, index) => {
+        setTimeout(() => {
+            const item = document.createElement('div');
+            item.className = 'sequence-item active';
+            item.textContent = num;
+            display.appendChild(item);
+            
+            setTimeout(() => item.classList.remove('active'), 500);
+            
+            if (index === currentSequence.length - 1) {
+                setTimeout(() => {
+                    display.innerHTML = '';
+                    document.getElementById('sequenceInput').style.display = 'block';
+                }, 1000);
+            }
+        }, index * 1000);
+    });
+}
+
+function checkSequence() {
+    const answer = document.getElementById('sequenceAnswer').value;
+    const correct = currentSequence.join('');
+    const accuracy = answer === correct ? 100 : 0;
+    
+    completeTask('task2', accuracy);
+}
+
+// Pattern Recognition Game
+function startPatternGame() {
+    startTime = Date.now();
+    startTimer('timer3');
+    
+    const shapes = ['⭐', '⭐', '⭐', '⭐', '🔷'];
+    const shuffled = shapes.sort(() => Math.random() - 0.5);
+    
+    const display = document.getElementById('patternDisplay');
+    display.innerHTML = '';
+    
+    shuffled.forEach((shape, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-lg btn-outline-primary';
+        btn.style.fontSize = '3rem';
+        btn.style.width = '100px';
+        btn.style.height = '100px';
+        btn.textContent = shape;
+        btn.onclick = () => {
+            const accuracy = shape === '🔷' ? 100 : 0;
+            completeTask('task3', accuracy);
+        };
+        display.appendChild(btn);
+    });
+    
+    document.getElementById('startPattern').style.display = 'none';
+}
+
+// Timer functions
+function startTimer(timerId) {
+    if (currentTimer) clearInterval(currentTimer);
+    
+    currentTimer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById(timerId).textContent = `Time: ${elapsed}s`;
+    }, 1000);
+}
+
+function stopTimer() {
+    if (currentTimer) {
+        clearInterval(currentTimer);
+        currentTimer = null;
+    }
+}
+
+// Task completion
+function completeTask(taskId, accuracy) {
+    stopTimer();
+    const time = Math.floor((Date.now() - startTime) / 1000);
+    
+    taskScores[taskId] = {
+        completed: true,
+        accuracy: accuracy,
+        time: time
+    };
+    
+    updateScorePanel();
+    
+    // Show next task
+    if (taskId === 'task1') {
+        document.getElementById('task2').style.display = 'block';
+        document.getElementById('task2').scrollIntoView({ behavior: 'smooth' });
+    } else if (taskId === 'task2') {
+        document.getElementById('task3').style.display = 'block';
+        document.getElementById('task3').scrollIntoView({ behavior: 'smooth' });
+    } else if (taskId === 'task3') {
+        document.getElementById('submitSection').style.display = 'block';
+        document.getElementById('submitSection').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function updateScorePanel() {
+    const completed = Object.values(taskScores).filter(t => t.completed).length;
+    const totalAccuracy = Object.values(taskScores).reduce((sum, t) => sum + t.accuracy, 0) / 3;
+    const totalTime = Object.values(taskScores).reduce((sum, t) => sum + t.time, 0);
+    
+    document.getElementById('completed').textContent = `${completed}/3`;
+    document.getElementById('accuracy').textContent = `${Math.round(totalAccuracy)}%`;
+    document.getElementById('totalTime').textContent = `${totalTime}s`;
+}
+
+async function submitTasks() {
+    const totalAccuracy = Object.values(taskScores).reduce((sum, t) => sum + t.accuracy, 0) / 3 / 100;
+    const avgTime = Object.values(taskScores).reduce((sum, t) => sum + t.time, 0) / 3;
+    const timeScore = Math.max(0, 1 - (avgTime / 60)); // Normalize time (60s = 0, 0s = 1)
+    const completionRate = Object.values(taskScores).filter(t => t.completed).length / 3;
+    
+    const taskData = {
+        accuracy: totalAccuracy,
+        time_score: timeScore,
+        completion_rate: completionRate
+    };
+    
+    try {
+        const response = await fetch('/cognitive_tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(taskData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Tasks completed successfully!');
+            window.location.href = result.redirect;
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

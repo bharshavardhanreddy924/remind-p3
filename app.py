@@ -1,16 +1,29 @@
 try:
     from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
     from werkzeug.security import generate_password_hash, check_password_hash
+    from werkzeug.utils import secure_filename
     from datetime import datetime, timedelta
     from bson.objectid import ObjectId
     import os
     import certifi
     from flask import g
+    import uuid
+    import json
+    import glob
+    import random
+    from groq import Groq
+    from dotenv import load_dotenv
 
 except ImportError as e:
     print(f"Import error: {str(e)}")
     print("Please make sure all required packages are installed by running: pip install -r requirements.txt")
     exit(1)
+
+# Load environment variables from .env file
+load_dotenv()
+print("🔧 Loading environment variables...")
+print(f"✅ GROQ_API_KEY loaded: {'Yes' if os.getenv('GROQ_API_KEY') else 'No'}")
+print(f"✅ MONGO_URI loaded: {'Yes' if os.getenv('MONGO_URI') else 'No'}")
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -35,7 +48,9 @@ def offline():
 
 # MongoDB Configuration
 from pymongo.mongo_client import MongoClient
-uri = "mongodb+srv://bharshavardhanreddy924:516474Ta@data-dine.5oghq.mongodb.net/?retryWrites=true&w=majority&ssl=true"
+# Use environment variable or fallback to hardcoded URI
+uri = os.getenv('MONGO_URI', "mongodb+srv://bharshavardhanreddy924:516474Ta@data-dine.5oghq.mongodb.net/?retryWrites=true&w=majority&ssl=true")
+print(f"🔗 Connecting to MongoDB...")
 
 try:
     client = MongoClient(uri, tlsCAFile=certifi.where())
@@ -48,13 +63,16 @@ except Exception as e:
     db = None  # Prevent application crashes
 
 # File Upload Configuration
-UPLOAD_FOLDER = 'static/images'
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads', 'uploaded')
+OLD_IMAGES_FOLDER = os.path.join(BASE_DIR, 'static', 'images', 'slideshow')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Ensure upload directory exists
+# Ensure upload directories exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(OLD_IMAGES_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -100,6 +118,62 @@ def get_caretaker_patients(caretaker_id):
         return []
     return list(db.users.find({"caretaker_id": ObjectId(caretaker_id)}))
 
+def calculate_severity_score(mmse_score, observation_score, task_score):
+    """Calculate severity score using weighted formula"""
+    severity = (mmse_score * 0.60) + (observation_score * 0.25) + (task_score * 0.15)
+    return round(severity, 2)
+
+def classify_severity(score):
+    """Classify severity level based on score"""
+    if score >= 24:
+        return {
+            'level': 'Mild',
+            'profile': 'Profile-A',
+            'description': 'Mild cognitive impairment',
+            'ui_mode': 'normal'
+        }
+    elif 18 <= score < 24:
+        return {
+            'level': 'Moderate',
+            'profile': 'Profile-B',
+            'description': 'Moderate cognitive impairment',
+            'ui_mode': 'simplified'
+        }
+    else:
+        return {
+            'level': 'Severe',
+            'profile': 'Profile-C',
+            'description': 'Severe cognitive impairment',
+            'ui_mode': 'assisted'
+        }
+
+def get_therapy_recommendations(severity_level):
+    """Get therapy recommendations based on severity"""
+    recommendations = {
+        'Mild': [
+            'Brain games and puzzles',
+            'Memory recall exercises',
+            'Attention and concentration tasks',
+            'Reading and comprehension activities',
+            'Social interaction activities'
+        ],
+        'Moderate': [
+            'Guided memory exercises',
+            'Daily routine reinforcement',
+            'Simple problem-solving tasks',
+            'Familiar object recognition',
+            'Caregiver-assisted activities'
+        ],
+        'Severe': [
+            'Audio-visual stimulation',
+            'Sensory engagement activities',
+            'Recognition exercises with familiar items',
+            'Music therapy',
+            'Caregiver-led interaction'
+        ]
+    }
+    return recommendations.get(severity_level, [])
+
 # Routes
 @app.route('/splash')
 def splash():
@@ -139,15 +213,27 @@ def login():
         
         user = db.users.find_one({"email": email})
         
-        user_password = user.get('password') if user else None
-        if user and user_password and check_password_hash(user_password, password):
-            session.permanent = True
-            session['user_id'] = str(user['_id'])
-            session['user_type'] = user['user_type']
-            session['name'] = user['name']
-            
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
+        if user:
+            user_password = user.get('password')
+            if user_password:
+                try:
+                    # Try to verify the password
+                    if check_password_hash(user_password, password):
+                        session.permanent = True
+                        session['user_id'] = str(user['_id'])
+                        session['user_type'] = user['user_type']
+                        session['name'] = user['name']
+                        
+                        flash('Login successful!', 'success')
+                        return redirect(url_for('dashboard'))
+                    else:
+                        flash('Invalid email or password', 'danger')
+                except ValueError:
+                    # If hash format is incompatible, rehash the password
+                    # For now, just show error and suggest re-registration
+                    flash('Password format incompatible. Please contact administrator or re-register.', 'danger')
+            else:
+                flash('Invalid email or password', 'danger')
         else:
             flash('Invalid email or password', 'danger')
     
@@ -181,7 +267,9 @@ def register():
             "password": generate_password_hash(password),
             "user_type": user_type,
             "created_at": datetime.now(),
-            "personal_info": "I am a person who needs memory care assistance."
+            "personal_info": "I am a person who needs memory care assistance.",
+            "cognitive_profile": None,
+            "ui_mode": "normal"
         }
         
         # For patient-type users, allow caretaker assignment
@@ -413,10 +501,406 @@ def ai_assistant():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    return render_template('ai_assistant.html')
+    user_id = ObjectId(session['user_id'])
+    user = get_user_data(user_id)
+    
+    return render_template('ai_assistant.html', user=user)
+
+@app.route('/ai_response', methods=['POST'])
+def ai_response():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+    
+    if not check_db_connection() or db is None:
+        return jsonify({'success': False, 'message': 'Database error'}), 500
+    
+    user_id = ObjectId(session['user_id'])
+    user = get_user_data(user_id)
+    
+    data = request.json
+    user_message = data.get('prompt', '').strip()
+    
+    if not user_message:
+        return jsonify({'success': False, 'message': 'Empty message'}), 400
+    
+    # Store user message in conversation history
+    conversation_entry = {
+        'user_id': user_id,
+        'timestamp': datetime.now(),
+        'user_message': user_message,
+        'context_type': 'conversation'
+    }
+    # Auto-store statements about self silently (LLM will acknowledge naturally)
+    auto_store_patterns = ['my name is', 'i am', 'i live in', 'my age is', 'i like', 'my hobby is', 'my favorite', 'remember that', 'note that']
+    should_auto_store = any(pattern in user_message.lower() for pattern in auto_store_patterns)
+    
+    if should_auto_store:
+        # Silently store the information - LLM will acknowledge it naturally
+        db.user_context.insert_one({
+            'user_id': user_id,
+            'timestamp': datetime.now(),
+            'information': user_message,
+            'category': 'user_provided',
+            'extracted': True
+        })
+    
+    # Always retrieve comprehensive user data from all collections
+    context_info = []
+    
+    # 1. Basic user profile
+    if user:
+        context_info.append(f"Name: {user.get('name', 'Unknown')}")
+        context_info.append(f"Email: {user.get('email', 'Not set')}")
+        if user.get('age'):
+            context_info.append(f"Age: {user.get('age')}")
+        if user.get('personal_info'):
+            context_info.append(f"Personal Info: {user.get('personal_info')}")
+    
+    # 2. User context (stored information)
+    user_contexts = list(db.user_context.find(
+        {"user_id": user_id}
+    ).sort("timestamp", -1).limit(15))
+    
+    if user_contexts:
+        context_info.append("\nStored Information:")
+        for ctx in user_contexts:
+            context_info.append(f"- {ctx.get('information', '')}")
+    
+    # 3. MMSE Assessment data
+        latest_mmse = db.mmse_results.find_one(
+            {"user_id": user_id},
+            sort=[("timestamp", -1)]
+        )
+        if latest_mmse:
+            context_info.append(f"\nCognitive Assessment:")
+            context_info.append(f"- MMSE Score: {latest_mmse.get('total_score', 'N/A')}/30")
+            context_info.append(f"- Assessment Date: {latest_mmse.get('timestamp', 'Unknown')}")
+        
+        # 4. Severity assessment
+        latest_severity = db.severity_assessments.find_one(
+            {"user_id": user_id},
+            sort=[("timestamp", -1)]
+        )
+        if latest_severity:
+            context_info.append(f"- Severity Level: {latest_severity.get('severity_level', 'Unknown')}")
+            context_info.append(f"- Cognitive Profile: {latest_severity.get('ui_profile', 'Unknown')}")
+        
+        # 5. Tasks
+        task_data = db.tasks.find_one({"user_id": user_id})
+        if task_data and task_data.get('tasks'):
+            tasks = task_data.get('tasks', [])
+            pending_tasks = [t for t in tasks if not t.get('completed', False)]
+            if pending_tasks:
+                context_info.append(f"\nPending Tasks: {len(pending_tasks)}")
+                for task in pending_tasks[:3]:  # Show first 3
+                    context_info.append(f"- {task.get('text', 'Unknown task')}")
+        
+        # 6. Medications
+        med_data = db.medications.find_one({"user_id": user_id})
+        if med_data and med_data.get('medications'):
+            meds = med_data.get('medications', [])
+            if meds:
+                context_info.append(f"\nMedications: {len(meds)}")
+                for med in meds[:3]:  # Show first 3
+                    context_info.append(f"- {med.get('name', 'Unknown')} at {med.get('time', 'Unknown time')}")
+        
+        # 7. Notes
+        notes_data = db.notes.find_one({"user_id": user_id})
+        if notes_data and notes_data.get('content'):
+            notes_preview = notes_data.get('content', '')[:200]
+            context_info.append(f"\nNotes: {notes_preview}...")
+        
+        # 8. Recent conversations
+        recent_convos = list(db.ai_conversations.find(
+            {"user_id": user_id}
+        ).sort("timestamp", -1).limit(5))
+        
+        if recent_convos:
+            context_info.append("\nRecent Conversations:")
+            for convo in recent_convos:
+                if convo.get('user_message'):
+                    context_info.append(f"User: {convo.get('user_message')}")
+                if convo.get('ai_response'):
+                    context_info.append(f"AI: {convo.get('ai_response')}")
+        
+    context_string = "\n".join(context_info)
+    
+    # ALWAYS use Groq LLM for intelligent, natural responses
+    response_text = generate_contextual_response(user_message, context_string, user, is_storing=should_auto_store)
+    
+    # Store AI response
+    conversation_entry['ai_response'] = response_text
+    db.ai_conversations.insert_one(conversation_entry)
+    
+    return jsonify({'success': True, 'response': response_text})
+
+def generate_contextual_response(user_message, context, user, is_storing=False):
+    """Generate a contextual response using Groq LLM with stored context"""
+    try:
+        # Initialize Groq client
+        groq_api_key = os.getenv('GROQ_API_KEY')
+        if not groq_api_key:
+            print("⚠️ GROQ_API_KEY not found - falling back to basic responses")
+            return generate_fallback_response(user_message, context, user)
+        
+        print(f"✅ Using Groq API with key: {groq_api_key[:20]}...")
+        client = Groq(api_key=groq_api_key)
+        
+        # Build system prompt with user context
+        system_prompt = f"""You are a compassionate AI memory assistant for a dementia care application.
+
+CRITICAL INSTRUCTIONS:
+- You have access to the user's complete database information below
+- ALWAYS use this information to answer questions accurately
+- Be conversational, warm, and helpful
+- Keep responses natural and friendly (2-4 sentences)
+- If user is storing new information, acknowledge it warmly
+
+USER'S COMPLETE PROFILE:
+{context if context else 'No information available yet'}
+
+RESPONSE GUIDELINES:
+1. Answer questions using the profile data above
+2. Be specific - use actual names, ages, places from the data
+3. If information is missing, say so kindly and suggest they can tell you
+4. When they share new info, acknowledge and confirm you've saved it
+5. Be encouraging and supportive
+
+Examples:
+- "How old am I?" → Check profile for age, respond with actual age
+- "Where do I live?" → Check profile for location, respond with actual place
+- "What do I like?" → Check profile for interests, list them
+- "My age is 21" → "Great! I've saved that you're 21 years old."
+"""
+
+        # Call Groq API
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            model="llama-3.3-70b-versatile",  # Updated to supported model (Dec 2024)
+            temperature=0.7,
+            max_tokens=200,
+            top_p=0.9
+        )
+        
+        response = chat_completion.choices[0].message.content
+        print(f"✅ Groq response generated successfully")
+        return response.strip()
+        
+    except Exception as e:
+        print(f"❌ Groq API Error: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        # Fallback to basic responses
+        return generate_fallback_response(user_message, context, user)
+
+def generate_fallback_response(user_message, context, user):
+    """Fallback response generator when Groq API is unavailable"""
+    message_lower = user_message.lower()
+    
+    # Name queries
+    if 'name' in message_lower and ('my' in message_lower or 'what' in message_lower):
+        return f"Your name is {user.get('name', 'not set in your profile')}."
+    
+    # Age queries
+    if 'age' in message_lower or 'old' in message_lower:
+        return "I don't have your age information stored yet. You can tell me by saying 'My age is [number]'."
+    
+    # Location queries
+    if 'live' in message_lower or 'address' in message_lower or 'where' in message_lower:
+        return "I don't have your address stored yet. You can tell me by saying 'I live in [location]'."
+    
+    # Personal info queries
+    if 'about' in message_lower and ('me' in message_lower or 'myself' in message_lower):
+        personal_info = user.get('personal_info', 'No personal information available yet.')
+        return f"Here's what I know about you: {personal_info}"
+    
+    # Hobby queries
+    if 'hobby' in message_lower or 'hobbies' in message_lower or 'like to do' in message_lower:
+        return "I don't have information about your hobbies yet. You can tell me by saying 'My hobbies are [hobbies]' or 'I like to [activity]'."
+    
+    # Family queries
+    if 'family' in message_lower:
+        return "I don't have information about your family yet. You can tell me about them by saying 'My family includes [family members]'."
+    
+    # Medication queries
+    if 'medication' in message_lower or 'medicine' in message_lower:
+        return "You can check your medications in the Medications section of the app. Would you like me to help you with anything else?"
+    
+    # Task queries
+    if 'task' in message_lower or 'todo' in message_lower:
+        return "You can view and manage your tasks in the Tasks section. Is there anything specific you'd like to know?"
+    
+    # General greeting
+    if any(word in message_lower for word in ['hello', 'hi', 'hey', 'good morning', 'good afternoon']):
+        return f"Hello {user.get('name', 'there')}! How can I assist you today?"
+    
+    # Thank you
+    if 'thank' in message_lower:
+        return "You're welcome! I'm here to help whenever you need me."
+    
+    # Help request
+    if 'help' in message_lower:
+        return "I can help you remember personal information, answer questions about yourself, and store new information you tell me. Just ask me anything or tell me something you'd like me to remember!"
+    
+    # Default response with context
+    if context:
+        return f"Based on what I know: {context[:200]}... Is there something specific you'd like to know?"
+    else:
+        return "I'm here to help! You can ask me questions about yourself, or tell me things you'd like me to remember. For example, try saying 'My name is...' or 'I like to...'"
 
 @app.route('/memory_training')
 def memory_training():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = ObjectId(session['user_id'])
+    user = get_user_data(user_id)
+    
+    return render_template('memory_training.html', user=user)
+
+@app.route('/process_voice_navigation', methods=['POST'])
+def process_voice_navigation():
+    """Process voice navigation commands using Groq LLM"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not logged in'}), 401
+    
+    if not check_db_connection() or db is None:
+        return jsonify({'success': False, 'message': 'Database error'}), 500
+    
+    user_id = ObjectId(session['user_id'])
+    user = get_user_data(user_id)
+    
+    data = request.json
+    command = data.get('command', '').strip().lower()
+    
+    if not command:
+        return jsonify({'success': False, 'message': 'No command provided'}), 400
+    
+    try:
+        # Use Groq LLM to intelligently parse the command
+        groq_api_key = os.getenv('GROQ_API_KEY')
+        if groq_api_key:
+            client = Groq(api_key=groq_api_key)
+            
+            system_prompt = """You are a voice navigation assistant for a dementia care application. 
+Your job is to understand user voice commands and map them to the correct navigation action.
+
+Available pages and their routes:
+- Dashboard/Home: /dashboard
+- Tasks: /tasks
+- Medications/Medicine: /medications
+- Photos/Memories/Slideshow: /photo_slideshow
+- MMSE Test/Assessment/Cognitive Test: /mmse_assessment
+- Progress/Analytics/Dashboard: /progress_dashboard
+- Memory Training/Games: /memory_training
+- AI Assistant/Chatbot: /ai_assistant
+- Notes: /notes
+
+User intent examples:
+- "take me to tasks" → /tasks
+- "show my medications" → /medications
+- "I want to see photos" → /photo_slideshow
+- "take the MMSE test" → /mmse_assessment
+- "show my progress" → /progress_dashboard
+- "go home" → /dashboard
+- "open memory games" → /memory_training
+- "talk to assistant" → /ai_assistant
+
+Respond ONLY with a JSON object in this exact format:
+{"route": "/route_name", "message": "Navigating to [page name]"}
+
+If you cannot understand the command, respond with:
+{"route": null, "message": "I didn't understand that. Try saying 'take me to tasks' or 'show my photos'"}
+"""
+            
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"User said: {command}"}
+                ],
+                model="llama-3.1-70b-versatile",
+                temperature=0.3,
+                max_tokens=100
+            )
+            
+            response_text = chat_completion.choices[0].message.content.strip()
+            
+            # Parse JSON response
+            import json
+            try:
+                result = json.loads(response_text)
+                route = result.get('route')
+                message = result.get('message', 'Navigating...')
+                
+                if route:
+                    return jsonify({
+                        'success': True,
+                        'url': route,
+                        'message': message
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'message': message
+                    })
+            except json.JSONDecodeError:
+                # Fallback if LLM doesn't return valid JSON
+                return process_voice_navigation_fallback(command)
+        else:
+            # No Groq API key, use fallback
+            return process_voice_navigation_fallback(command)
+            
+    except Exception as e:
+        print(f"Voice navigation error: {e}")
+        return process_voice_navigation_fallback(command)
+
+def process_voice_navigation_fallback(command):
+    """Fallback navigation processing without LLM"""
+    command = command.lower()
+    
+    # Navigation mapping
+    navigation_map = {
+        'dashboard': ('/dashboard', 'Going to dashboard'),
+        'home': ('/dashboard', 'Going home'),
+        'task': ('/tasks', 'Opening your tasks'),
+        'medication': ('/medications', 'Showing your medications'),
+        'medicine': ('/medications', 'Showing your medications'),
+        'photo': ('/photo_slideshow', 'Opening photo memories'),
+        'picture': ('/photo_slideshow', 'Opening photo memories'),
+        'memory': ('/photo_slideshow', 'Opening photo memories'),
+        'slideshow': ('/photo_slideshow', 'Starting slideshow'),
+        'mmse': ('/mmse_assessment', 'Opening MMSE assessment'),
+        'test': ('/mmse_assessment', 'Opening cognitive test'),
+        'assessment': ('/mmse_assessment', 'Opening assessment'),
+        'progress': ('/progress_dashboard', 'Showing your progress'),
+        'analytics': ('/progress_dashboard', 'Opening analytics'),
+        'training': ('/memory_training', 'Opening memory training'),
+        'game': ('/memory_training', 'Opening memory games'),
+        'assistant': ('/ai_assistant', 'Opening AI assistant'),
+        'chatbot': ('/ai_assistant', 'Opening chatbot'),
+        'chat': ('/ai_assistant', 'Opening chat'),
+        'note': ('/notes', 'Opening your notes'),
+    }
+    
+    # Find matching route
+    for keyword, (route, message) in navigation_map.items():
+        if keyword in command:
+            return jsonify({
+                'success': True,
+                'url': route,
+                'message': message
+            })
+    
+    # No match found
+    return jsonify({
+        'success': False,
+        'message': 'I didn\'t understand that. Try saying "take me to tasks" or "show my photos"'
+    })
+
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -452,6 +936,454 @@ def notes():
         content = notes_data.get('content', "")
     
     return render_template('notes.html', content=content)
+
+# ==================== PHOTO SLIDESHOW ROUTES ====================
+
+def get_old_images():
+    """Get list of old images for slideshow"""
+    image_files = []
+    for ext in ['jpg', 'jpeg', 'png', 'gif']:
+        image_files.extend(glob.glob(os.path.join(OLD_IMAGES_FOLDER, f"*.{ext}")))
+    
+    # Return relative paths for Flask static files
+    return [os.path.relpath(f, 'remindp2/static').replace('\\', '/') for f in image_files]
+
+def get_memory_prompts(count=3):
+    """Generate random memory prompts"""
+    prompts = [
+        "What was your favorite childhood memory?",
+        "Tell me about your first job or career.",
+        "What was your wedding day like?",
+        "Describe your childhood home.",
+        "What games did you play as a child?",
+        "Tell me about your school days.",
+        "What was your favorite holiday tradition?",
+        "Describe a memorable family gathering.",
+        "What was your favorite song or music?",
+        "Tell me about a special friend from your past.",
+        "What was your favorite food growing up?",
+        "Describe a memorable vacation or trip.",
+        "What hobbies did you enjoy?",
+        "Tell me about your parents or grandparents.",
+        "What was fashion like when you were young?"
+    ]
+    return random.sample(prompts, min(count, len(prompts)))
+
+@app.route('/photo_slideshow')
+def photo_slideshow():
+    """Main page for photo slideshow / reminiscence therapy"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Get old images for the slideshow
+    old_images = get_old_images()
+    
+    # Generate memory prompts
+    memory_prompts = get_memory_prompts(3)
+    
+    # Get user info
+    user_id = ObjectId(session['user_id'])
+    user = get_user_data(user_id)
+    
+    # Get memory entries from database
+    memory_entries = list(db.memory_entries.find({"user_id": user_id}).sort("date", -1))
+    
+    return render_template('photo_slideshow.html',
+                           old_images=old_images,
+                           memory_prompts=memory_prompts,
+                           memory_entries=memory_entries,
+                           user=user)
+
+@app.route('/upload_memory', methods=['POST'])
+def upload_memory():
+    """Upload a memory (photo) for reminiscence therapy"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = ObjectId(session['user_id'])
+    
+    if 'photo' not in request.files:
+        flash("No file part", "danger")
+        return redirect(url_for('photo_slideshow'))
+    
+    file = request.files['photo']
+    year = request.form.get('year', '')
+    description = request.form.get('description', '')
+    
+    if file.filename == '':
+        flash("No selected file", "danger")
+        return redirect(url_for('photo_slideshow'))
+    
+    if file and allowed_file(file.filename):
+        try:
+            filename = secure_filename(file.filename)
+            # Add year to filename if provided
+            if year:
+                base, ext = os.path.splitext(filename)
+                filename = f"{base}_{year}{ext}"
+            
+            file_path = os.path.join(OLD_IMAGES_FOLDER, filename)
+            file.save(file_path)
+            
+            # Save metadata to database
+            db.memory_entries.insert_one({
+                "user_id": user_id,
+                "filename": filename,
+                "path": os.path.relpath(file_path, 'remindp2/static').replace('\\', '/'),
+                "year": year,
+                "description": description,
+                "date": datetime.now()
+            })
+            
+            flash("Memory uploaded successfully!", "success")
+        except Exception as e:
+            flash(f"Error uploading memory: {str(e)}", "danger")
+    else:
+        flash("File type not allowed. Please upload a jpg, jpeg, png, or gif file.", "danger")
+    
+    return redirect(url_for('photo_slideshow'))
+
+@app.route('/add_memory_entry', methods=['POST'])
+def add_memory_entry():
+    """Add a text memory entry without a photo"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = ObjectId(session['user_id'])
+    title = request.form.get('title', '')
+    year = request.form.get('year', '')
+    content = request.form.get('content', '')
+    
+    if not title or not content:
+        flash("Title and content are required", "danger")
+        return redirect(url_for('photo_slideshow'))
+    
+    try:
+        db.memory_entries.insert_one({
+            "user_id": user_id,
+            "title": title,
+            "year": year,
+            "content": content,
+            "date": datetime.now()
+        })
+        flash("Memory entry added successfully!", "success")
+    except Exception as e:
+        flash(f"Error adding memory entry: {str(e)}", "danger")
+    
+    return redirect(url_for('photo_slideshow'))
+
+# ==================== MMSE ASSESSMENT ROUTES ====================
+
+@app.route('/mmse_assessment')
+def mmse_assessment():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    return render_template('mmse_assessment.html')
+
+@app.route('/mmse_onboarding', methods=['GET', 'POST'])
+def mmse_onboarding():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        if not check_db_connection() or db is None:
+            flash('Database connection error', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        user_id = ObjectId(session['user_id'])
+        
+        onboarding_data = {
+            'user_id': user_id,
+            'full_name': request.form.get('full_name'),
+            'age': int(request.form.get('age', 0)),
+            'gender': request.form.get('gender'),
+            'education_level': request.form.get('education_level'),
+            'preferred_language': request.form.get('preferred_language'),
+            'caregiver_available': request.form.get('caregiver_available') == 'yes',
+            'medical_notes': request.form.get('medical_notes', ''),
+            'created_at': datetime.now()
+        }
+        
+        db.mmse_onboarding.update_one(
+            {"user_id": user_id},
+            {"$set": onboarding_data},
+            upsert=True
+        )
+        
+        flash('Onboarding completed successfully!', 'success')
+        return redirect(url_for('mmse_test'))
+    
+    return render_template('mmse_onboarding.html')
+
+@app.route('/mmse_test', methods=['GET', 'POST'])
+def mmse_test():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        if not check_db_connection() or db is None:
+            return jsonify({'success': False, 'message': 'Database error'}), 500
+        
+        user_id = ObjectId(session['user_id'])
+        
+        # Calculate MMSE score
+        mmse_data = request.json
+        
+        # Orientation to Time (5 marks)
+        time_score = sum([
+            1 if mmse_data.get('date_correct') else 0,
+            1 if mmse_data.get('month_correct') else 0,
+            1 if mmse_data.get('year_correct') else 0,
+            1 if mmse_data.get('day_correct') else 0,
+            1 if mmse_data.get('season_correct') else 0
+        ])
+        
+        # Orientation to Place (5 marks)
+        place_score = sum([
+            1 if mmse_data.get('country_correct') else 0,
+            1 if mmse_data.get('state_correct') else 0,
+            1 if mmse_data.get('building_correct') else 0,
+            1 if mmse_data.get('floor_correct') else 0,
+            1 if mmse_data.get('area_correct') else 0
+        ])
+        
+        # Registration (3 marks)
+        registration_score = mmse_data.get('registration_score', 0)
+        
+        # Attention & Calculation (5 marks)
+        attention_score = mmse_data.get('attention_score', 0)
+        
+        # Recall (3 marks)
+        recall_score = mmse_data.get('recall_score', 0)
+        
+        # Language (8 marks)
+        language_score = mmse_data.get('language_score', 0)
+        
+        # Visual Construction (1 mark)
+        visual_score = 1 if mmse_data.get('visual_correct') else 0
+        
+        total_mmse_score = time_score + place_score + registration_score + attention_score + recall_score + language_score + visual_score
+        
+        # Store MMSE results
+        mmse_result = {
+            'user_id': user_id,
+            'test_date': datetime.now(),
+            'time_score': time_score,
+            'place_score': place_score,
+            'registration_score': registration_score,
+            'attention_score': attention_score,
+            'recall_score': recall_score,
+            'language_score': language_score,
+            'visual_score': visual_score,
+            'total_score': total_mmse_score,
+            'responses': mmse_data
+        }
+        
+        db.mmse_results.insert_one(mmse_result)
+        
+        return jsonify({
+            'success': True,
+            'total_score': total_mmse_score,
+            'redirect': url_for('caregiver_observation')
+        })
+    
+    return render_template('mmse_test.html')
+
+@app.route('/caregiver_observation', methods=['GET', 'POST'])
+def caregiver_observation():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        if not check_db_connection() or db is None:
+            return jsonify({'success': False, 'message': 'Database error'}), 500
+        
+        user_id = ObjectId(session['user_id'])
+        
+        # Calculate observation score (normalize to 30)
+        observations = request.json
+        
+        total_raw = sum([
+            int(observations.get('forgetfulness', 0)),
+            int(observations.get('mood_instability', 0)),
+            int(observations.get('wandering', 0)),
+            int(observations.get('recognition_difficulty', 0)),
+            int(observations.get('task_dependency', 0)),
+            int(observations.get('communication_difficulty', 0))
+        ])
+        
+        # Normalize to 30 (6 questions * 5 points = 30 max)
+        observation_score = total_raw
+        
+        # Store observation results
+        observation_result = {
+            'user_id': user_id,
+            'observation_date': datetime.now(),
+            'forgetfulness': int(observations.get('forgetfulness', 0)),
+            'mood_instability': int(observations.get('mood_instability', 0)),
+            'wandering': int(observations.get('wandering', 0)),
+            'recognition_difficulty': int(observations.get('recognition_difficulty', 0)),
+            'task_dependency': int(observations.get('task_dependency', 0)),
+            'communication_difficulty': int(observations.get('communication_difficulty', 0)),
+            'total_score': observation_score
+        }
+        
+        db.caregiver_observations.insert_one(observation_result)
+        
+        return jsonify({
+            'success': True,
+            'observation_score': observation_score,
+            'redirect': url_for('cognitive_tasks')
+        })
+    
+    return render_template('caregiver_observation.html')
+
+@app.route('/cognitive_tasks', methods=['GET', 'POST'])
+def cognitive_tasks():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        if not check_db_connection() or db is None:
+            return jsonify({'success': False, 'message': 'Database error'}), 500
+        
+        user_id = ObjectId(session['user_id'])
+        
+        # Calculate task performance score (normalize to 30)
+        task_data = request.json
+        
+        accuracy = float(task_data.get('accuracy', 0))
+        time_score = float(task_data.get('time_score', 0))
+        completion_rate = float(task_data.get('completion_rate', 0))
+        
+        # Weighted task score (normalize to 30)
+        task_score = (accuracy * 0.5 + time_score * 0.3 + completion_rate * 0.2) * 30
+        
+        # Store task results
+        task_result = {
+            'user_id': user_id,
+            'task_date': datetime.now(),
+            'accuracy': accuracy,
+            'time_score': time_score,
+            'completion_rate': completion_rate,
+            'total_score': round(task_score, 2),
+            'task_details': task_data
+        }
+        
+        db.cognitive_task_results.insert_one(task_result)
+        
+        return jsonify({
+            'success': True,
+            'task_score': round(task_score, 2),
+            'redirect': url_for('severity_assessment')
+        })
+    
+    return render_template('cognitive_tasks.html')
+
+@app.route('/severity_assessment')
+def severity_assessment():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if not check_db_connection() or db is None:
+        flash('Database connection error', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user_id = ObjectId(session['user_id'])
+    
+    # Get latest scores
+    mmse_result = db.mmse_results.find_one({"user_id": user_id}, sort=[("test_date", -1)])
+    observation_result = db.caregiver_observations.find_one({"user_id": user_id}, sort=[("observation_date", -1)])
+    task_result = db.cognitive_task_results.find_one({"user_id": user_id}, sort=[("task_date", -1)])
+    
+    if not mmse_result or not observation_result or not task_result:
+        flash('Please complete all assessments first', 'warning')
+        return redirect(url_for('mmse_onboarding'))
+    
+    mmse_score = mmse_result['total_score']
+    observation_score = observation_result['total_score']
+    task_score = task_result['total_score']
+    
+    # Calculate severity
+    severity_score = calculate_severity_score(mmse_score, observation_score, task_score)
+    classification = classify_severity(severity_score)
+    recommendations = get_therapy_recommendations(classification['level'])
+    
+    # Store severity assessment
+    severity_data = {
+        'user_id': user_id,
+        'assessment_date': datetime.now(),
+        'mmse_score': mmse_score,
+        'observation_score': observation_score,
+        'task_score': task_score,
+        'final_score': severity_score,
+        'severity_level': classification['level'],
+        'ui_profile': classification['profile'],
+        'ui_mode': classification['ui_mode']
+    }
+    
+    db.severity_assessments.insert_one(severity_data)
+    
+    # Update user profile
+    db.users.update_one(
+        {"_id": user_id},
+        {"$set": {
+            "cognitive_profile": classification['profile'],
+            "ui_mode": classification['ui_mode'],
+            "severity_level": classification['level']
+        }}
+    )
+    
+    return render_template('severity_assessment.html',
+                          mmse_score=mmse_score,
+                          observation_score=observation_score,
+                          task_score=task_score,
+                          severity_score=severity_score,
+                          classification=classification,
+                          recommendations=recommendations)
+
+@app.route('/progress_dashboard')
+def progress_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if not check_db_connection() or db is None:
+        flash('Database connection error', 'danger')
+        return redirect(url_for('dashboard'))
+    
+    user_id = ObjectId(session['user_id'])
+    
+    # Get all historical assessments
+    severity_history = list(db.severity_assessments.find(
+        {"user_id": user_id}
+    ).sort("assessment_date", 1))
+    
+    mmse_history = list(db.mmse_results.find(
+        {"user_id": user_id}
+    ).sort("test_date", 1))
+    
+    # Calculate improvement
+    improvement_data = None
+    if len(severity_history) >= 2:
+        latest = severity_history[-1]
+        previous = severity_history[-2]
+        
+        score_change = latest['severity_score'] - previous['severity_score']
+        improvement_percent = (score_change / previous['severity_score']) * 100 if previous['severity_score'] > 0 else 0
+        
+        improvement_data = {
+            'score_change': round(score_change, 2),
+            'improvement_percent': round(improvement_percent, 2),
+            'trend': 'improving' if score_change > 0 else 'declining' if score_change < 0 else 'stable'
+        }
+    
+    return render_template('progress_dashboard.html',
+                          severity_history=severity_history,
+                          mmse_history=mmse_history,
+                          improvement_data=improvement_data)
+
+# ==================== CARETAKER PATIENT MANAGEMENT ====================
 
 @app.route('/manage_patient/<patient_id>')
 def manage_patient(patient_id):
@@ -500,11 +1432,42 @@ def manage_patient(patient_id):
         else:
             notes_content = notes_data.get('content', "")
         
-        return render_template('manage_patient.html', 
+        # Get all MMSE assessments for this patient
+        mmse_assessments = list(db.mmse_results.find(
+            {"user_id": patient_id_obj}
+        ).sort("test_date", -1))
+        
+        # Get all severity assessments
+        severity_assessments = list(db.severity_assessments.find(
+            {"user_id": patient_id_obj}
+        ).sort("assessment_date", -1))
+        
+        # Get latest severity assessment
+        severity_data = severity_assessments[0] if severity_assessments else None
+        
+        # Calculate progress metrics
+        progress_data = None
+        if len(mmse_assessments) >= 2:
+            latest = mmse_assessments[0]
+            previous = mmse_assessments[1]
+            improvement = latest.get('total_score', 0) - previous.get('total_score', 0)
+            improvement_pct = (improvement / previous.get('total_score', 1)) * 100 if previous.get('total_score', 0) > 0 else 0
+            progress_data = {
+                'improvement': improvement,
+                'improvement_pct': improvement_pct,
+                'latest_score': latest.get('total_score', 0),
+                'previous_score': previous.get('total_score', 0)
+            }
+        
+        return render_template('manage_patient.html',
                               patient=patient,
                               tasks=tasks,
                               medications=medications,
-                              notes_content=notes_content)
+                              notes_content=notes_content,
+                              severity_data=severity_data,
+                              mmse_assessments=mmse_assessments,
+                              severity_assessments=severity_assessments,
+                              progress_data=progress_data)
                               
     except Exception as e:
         flash(f'Error: {str(e)}', 'danger')
@@ -667,3 +1630,5 @@ def handle_standalone_mode():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7000, debug=True, use_reloader=False)
+
+# Made with Bob

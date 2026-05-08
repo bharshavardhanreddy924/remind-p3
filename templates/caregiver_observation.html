@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Caregiver Observation{% endblock %}
+
+{% block extra_css %}
+<style>
+    .observation-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .observation-card {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .observation-item {
+        background: #f8f9fa;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        border-left: 4px solid #667eea;
+    }
+    
+    .slider-container {
+        margin: 20px 0;
+    }
+    
+    .slider {
+        width: 100%;
+        height: 8px;
+        border-radius: 5px;
+        background: #e9ecef;
+        outline: none;
+        -webkit-appearance: none;
+    }
+    
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: #667eea;
+        cursor: pointer;
+    }
+    
+    .slider::-moz-range-thumb {
+        width: 25px;
+        height: 25px;
+        border-radius: 50%;
+        background: #667eea;
+        cursor: pointer;
+        border: none;
+    }
+    
+    .slider-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .slider-value {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    
+    .info-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="observation-container">
+        <div class="info-banner">
+            <h2><i class="fas fa-user-nurse"></i> Caregiver Observation Assessment</h2>
+            <p class="mb-0">Rate the patient's behavior and symptoms over the past month</p>
+        </div>
+        
+        <div class="observation-card">
+            <form id="observationForm">
+                <div class="observation-item">
+                    <h5><i class="fas fa-brain"></i> Forgetfulness Frequency</h5>
+                    <p class="text-muted">How often does the patient forget recent events or conversations?</p>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" value="3" class="slider" id="forgetfulness" 
+                               oninput="updateSliderValue('forgetfulness')">
+                        <div class="slider-labels">
+                            <span>Rarely</span>
+                            <span>Sometimes</span>
+                            <span>Often</span>
+                            <span>Very Often</span>
+                            <span>Always</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="slider-value" id="forgetfulness-value">3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-item">
+                    <h5><i class="fas fa-sad-tear"></i> Mood Instability</h5>
+                    <p class="text-muted">How frequently does the patient experience mood swings or emotional changes?</p>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" value="3" class="slider" id="mood_instability" 
+                               oninput="updateSliderValue('mood_instability')">
+                        <div class="slider-labels">
+                            <span>Stable</span>
+                            <span>Slightly Unstable</span>
+                            <span>Moderate</span>
+                            <span>Quite Unstable</span>
+                            <span>Very Unstable</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="slider-value" id="mood_instability-value">3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-item">
+                    <h5><i class="fas fa-walking"></i> Wandering Tendency</h5>
+                    <p class="text-muted">Does the patient wander or get lost in familiar places?</p>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" value="3" class="slider" id="wandering" 
+                               oninput="updateSliderValue('wandering')">
+                        <div class="slider-labels">
+                            <span>Never</span>
+                            <span>Rarely</span>
+                            <span>Sometimes</span>
+                            <span>Often</span>
+                            <span>Frequently</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="slider-value" id="wandering-value">3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-item">
+                    <h5><i class="fas fa-user-friends"></i> Difficulty Recognizing People</h5>
+                    <p class="text-muted">How often does the patient have trouble recognizing familiar people?</p>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" value="3" class="slider" id="recognition_difficulty" 
+                               oninput="updateSliderValue('recognition_difficulty')">
+                        <div class="slider-labels">
+                            <span>Never</span>
+                            <span>Rarely</span>
+                            <span>Sometimes</span>
+                            <span>Often</span>
+                            <span>Always</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="slider-value" id="recognition_difficulty-value">3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-item">
+                    <h5><i class="fas fa-hands-helping"></i> Daily Task Dependency</h5>
+                    <p class="text-muted">How much assistance does the patient need with daily activities?</p>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" value="3" class="slider" id="task_dependency" 
+                               oninput="updateSliderValue('task_dependency')">
+                        <div class="slider-labels">
+                            <span>Independent</span>
+                            <span>Minimal Help</span>
+                            <span>Moderate Help</span>
+                            <span>Significant Help</span>
+                            <span>Total Assistance</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="slider-value" id="task_dependency-value">3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-item">
+                    <h5><i class="fas fa-comments"></i> Communication Difficulty</h5>
+                    <p class="text-muted">How difficult is it for the patient to express thoughts or understand others?</p>
+                    <div class="slider-container">
+                        <input type="range" min="1" max="5" value="3" class="slider" id="communication_difficulty" 
+                               oninput="updateSliderValue('communication_difficulty')">
+                        <div class="slider-labels">
+                            <span>No Difficulty</span>
+                            <span>Slight</span>
+                            <span>Moderate</span>
+                            <span>Significant</span>
+                            <span>Severe</span>
+                        </div>
+                        <div class="text-center mt-2">
+                            <span class="slider-value" id="communication_difficulty-value">3</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <button type="button" class="btn btn-primary btn-lg px-5" onclick="submitObservations()">
+                        <i class="fas fa-arrow-right"></i> Continue to Cognitive Tasks
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateSliderValue(sliderId) {
+    const slider = document.getElementById(sliderId);
+    const valueDisplay = document.getElementById(sliderId + '-value');
+    valueDisplay.textContent = slider.value;
+}
+
+async function submitObservations() {
+    const observations = {
+        forgetfulness: document.getElementById('forgetfulness').value,
+        mood_instability: document.getElementById('mood_instability').value,
+        wandering: document.getElementById('wandering').value,
+        recognition_difficulty: document.getElementById('recognition_difficulty').value,
+        task_dependency: document.getElementById('task_dependency').value,
+        communication_difficulty: document.getElementById('communication_difficulty').value
+    };
+    
+    try {
+        const response = await fetch('/caregiver_observation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(observations)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Observations recorded successfully!');
+            window.location.href = result.redirect;
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

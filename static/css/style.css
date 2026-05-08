@@ -160,7 +160,7 @@ a {
 }
 
 .feature-card i {
-    font-size: 2.5rem;
+    font-size: 2rem;
     margin-bottom: 10px;
 }
 
@@ -333,7 +333,7 @@ a {
     }
     
     .feature-card i {
-        font-size: 2rem;
+        font-size: 1.5rem;
     }
 }
 
@@ -477,3 +477,497 @@ html.pwa-standalone footer {
 .add-to-home.show {
     display: block;
 } 
+/* ============================================
+   ADAPTIVE UI MODES FOR COGNITIVE PROFILES
+   ============================================ */
+
+/* Profile-A: Normal UI (Mild Cognitive Impairment) */
+body.ui-normal {
+    font-size: 16px;
+}
+
+body.ui-normal .btn {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+body.ui-normal .card {
+    margin-bottom: 20px;
+}
+
+body.ui-normal h1 { font-size: 2rem; }
+body.ui-normal h2 { font-size: 1.75rem; }
+body.ui-normal h3 { font-size: 1.5rem; }
+
+/* Profile-B: Simplified UI (Moderate Cognitive Impairment) */
+body.ui-simplified {
+    font-size: 18px;
+    line-height: 1.8;
+}
+
+body.ui-simplified .btn {
+    padding: 16px 32px;
+    font-size: 18px;
+    font-weight: 600;
+    min-height: 56px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+body.ui-simplified .card {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+}
+
+body.ui-simplified h1 { 
+    font-size: 2.5rem; 
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+body.ui-simplified h2 { 
+    font-size: 2rem; 
+    font-weight: 600;
+}
+
+body.ui-simplified h3 { 
+    font-size: 1.75rem; 
+    font-weight: 600;
+}
+
+body.ui-simplified .nav-link {
+    font-size: 18px;
+    padding: 12px 20px;
+}
+
+body.ui-simplified input,
+body.ui-simplified select,
+body.ui-simplified textarea {
+    font-size: 18px;
+    padding: 12px;
+    border: 2px solid #ccc;
+}
+
+body.ui-simplified label {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* Reduce visual clutter */
+body.ui-simplified .card-header {
+    background-color: #f0f4ff;
+    font-size: 20px;
+    padding: 16px;
+}
+
+/* Profile-C: Assisted UI (Severe Cognitive Impairment) */
+body.ui-assisted {
+    font-size: 22px;
+    line-height: 2;
+    background-color: #fafafa;
+}
+
+body.ui-assisted .btn {
+    padding: 24px 48px;
+    font-size: 22px;
+    font-weight: 700;
+    min-height: 72px;
+    border-radius: 16px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    letter-spacing: 0.5px;
+}
+
+body.ui-assisted .btn-primary {
+    background: linear-gradient(135deg, #4E7ADC 0%, #3a65c0 100%);
+}
+
+body.ui-assisted .card {
+    margin-bottom: 40px;
+    padding: 30px;
+    border: 3px solid #d0d0d0;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+body.ui-assisted h1 { 
+    font-size: 3rem; 
+    font-weight: 800;
+    margin-bottom: 2rem;
+    color: #2c3e50;
+}
+
+body.ui-assisted h2 { 
+    font-size: 2.5rem; 
+    font-weight: 700;
+    color: #34495e;
+}
+
+body.ui-assisted h3 { 
+    font-size: 2rem; 
+    font-weight: 700;
+}
+
+body.ui-assisted .nav-link {
+    font-size: 22px;
+    padding: 16px 24px;
+    font-weight: 600;
+}
+
+body.ui-assisted input,
+body.ui-assisted select,
+body.ui-assisted textarea {
+    font-size: 22px;
+    padding: 16px;
+    border: 3px solid #999;
+    border-radius: 8px;
+}
+
+body.ui-assisted label {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #2c3e50;
+}
+
+body.ui-assisted .card-header {
+    background-color: #e8f0ff;
+    font-size: 24px;
+    padding: 20px;
+    font-weight: 700;
+}
+
+/* Minimal distractions - hide complex elements */
+body.ui-assisted .card:hover {
+    transform: none;
+}
+
+body.ui-assisted .dropdown-menu {
+    font-size: 20px;
+}
+
+body.ui-assisted .dropdown-item {
+    padding: 16px 24px;
+}
+
+/* High contrast for better visibility */
+body.ui-assisted {
+    color: #1a1a1a;
+}
+
+body.ui-assisted a {
+    color: #0056b3;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+/* Emergency/Important buttons - extra prominent */
+body.ui-assisted .btn-danger,
+body.ui-assisted .btn-warning {
+    font-size: 24px;
+    padding: 28px 56px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Voice guidance indicator */
+.voice-indicator {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: #4E7ADC;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 18px;
+    font-weight: 600;
+    z-index: 1000;
+    display: none;
+}
+
+body.ui-simplified .voice-indicator,
+body.ui-assisted .voice-indicator {
+    display: block;
+}
+
+/* Caregiver mode indicator */
+.caregiver-mode-badge {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+}
+
+body.ui-assisted .caregiver-mode-badge {
+    font-size: 18px;
+    padding: 12px 24px;
+}
+
+/* ============================================
+   AI ASSISTANT CHAT INTERFACE
+   ============================================ */
+
+.chat-container {
+    height: 400px;
+    overflow-y: auto;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    scroll-behavior: smooth;
+}
+
+.chat-message {
+    margin-bottom: 15px;
+    padding: 12px 16px;
+    border-radius: 18px;
+    max-width: 80%;
+    word-wrap: break-word;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-message {
+    background-color: #4E7ADC;
+    color: white;
+    margin-left: auto;
+    text-align: right;
+    border-bottom-right-radius: 4px;
+}
+
+.assistant-message {
+    background-color: white;
+    color: #333;
+    margin-right: auto;
+    border: 1px solid #e0e0e0;
+    border-bottom-left-radius: 4px;
+}
+
+.typing-indicator {
+    font-style: italic;
+    color: #666;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+.chat-input .input-group {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.chat-input input {
+    border: none;
+    padding: 14px 20px;
+}
+
+.chat-input button {
+    border: none;
+    padding: 14px 20px;
+}
+
+/* Voice button animations */
+.btn .fa-beat {
+    animation: beat 1s infinite;
+}
+
+@keyframes beat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+/* Adaptive chat for different UI modes */
+body.ui-simplified .chat-container {
+    height: 450px;
+    font-size: 18px;
+}
+
+body.ui-simplified .chat-message {
+    padding: 16px 20px;
+    font-size: 18px;
+    max-width: 85%;
+}
+
+body.ui-simplified .chat-input input {
+    font-size: 18px;
+    padding: 16px 24px;
+}
+
+body.ui-simplified .chat-input button {
+    font-size: 18px;
+    padding: 16px 24px;
+}
+
+body.ui-assisted .chat-container {
+    height: 500px;
+    font-size: 22px;
+    border: 3px solid #d0d0d0;
+}
+
+body.ui-assisted .chat-message {
+    padding: 20px 24px;
+    font-size: 22px;
+    max-width: 90%;
+    line-height: 1.8;
+}
+
+body.ui-assisted .chat-input input {
+    font-size: 22px;
+    padding: 20px 28px;
+}
+
+body.ui-assisted .chat-input button {
+    font-size: 22px;
+    padding: 20px 28px;
+    min-width: 70px;
+}
+
+body.ui-assisted .quick-question {
+    font-size: 20px;
+    padding: 14px 24px;
+    margin-bottom: 12px;
+}
+
+/* Voice indicator for assisted mode */
+body.ui-assisted .chat-input small,
+body.ui-simplified .chat-input small {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+body.ui-assisted .chat-input small {
+    font-size: 18px;
+}
+
+/* ============================================
+   VOICE NAVIGATION SYSTEM
+   ============================================ */
+
+.voice-nav-button {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4E7ADC 0%, #7749F8 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 6px 20px rgba(78, 122, 220, 0.4);
+    cursor: pointer;
+    z-index: 9999;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.voice-nav-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(78, 122, 220, 0.6);
+}
+
+.voice-nav-button.listening {
+    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
+    animation: pulse-listening 1.5s infinite;
+}
+
+@keyframes pulse-listening {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 8px 30px rgba(220, 53, 69, 0.8);
+    }
+}
+
+.voice-nav-status {
+    position: fixed;
+    bottom: 110px;
+    right: 30px;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 9998;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Adaptive sizing for different UI modes */
+body.ui-simplified .voice-nav-button {
+    width: 70px;
+    height: 70px;
+    font-size: 28px;
+    bottom: 40px;
+    right: 40px;
+}
+
+body.ui-simplified .voice-nav-status {
+    font-size: 16px;
+    padding: 14px 24px;
+    bottom: 130px;
+}
+
+body.ui-assisted .voice-nav-button {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+    bottom: 50px;
+    right: 50px;
+}
+
+body.ui-assisted .voice-nav-status {
+    font-size: 18px;
+    padding: 16px 28px;
+    bottom: 150px;
+}
+
+/* Pulsing effect for assisted mode to draw attention */
+body.ui-assisted .voice-nav-button {
+    animation: gentle-pulse 2s infinite;
+}
+
+@keyframes gentle-pulse {
+    0%, 100% {
+        box-shadow: 0 6px 20px rgba(78, 122, 220, 0.4);
+    }
+    50% {
+        box-shadow: 0 8px 30px rgba(78, 122, 220, 0.7);
+    }
+}
