@@ -4,14 +4,6 @@
 
 {% block extra_css %}
 <style>
-    .memory-prompt {
-        background-color: #f8f9fa;
-        border-left: 4px solid #4E7ADC;
-        padding: 15px;
-        margin-bottom: 15px;
-        border-radius: 4px;
-    }
-    
     .slideshow-container {
         position: relative;
         height: 400px;
@@ -163,26 +155,6 @@
             </div>
             {% endif %}
             
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Memory Prompts</h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted mb-4">These prompts can help stimulate memories and conversations about the past:</p>
-                    
-                    {% for prompt in memory_prompts %}
-                    <div class="memory-prompt">
-                        <i class="fas fa-quote-left text-primary me-2"></i>
-                        {{ prompt }}
-                    </div>
-                    {% endfor %}
-                    
-                    <button id="refresh-prompts" class="btn btn-outline-primary">
-                        <i class="fas fa-sync-alt me-2"></i>
-                        Get New Prompts
-                    </button>
-                </div>
-            </div>
         </div>
         
         <div class="col-md-4">
@@ -391,16 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Start slideshow
         startSlideshow();
-    }
-    
-    // Memory prompts refresh functionality
-    const refreshPromptsButton = document.getElementById('refresh-prompts');
-    
-    if (refreshPromptsButton) {
-        refreshPromptsButton.addEventListener('click', function() {
-            // Reload the page to get new prompts
-            location.reload();
-        });
     }
 });
 </script>
