@@ -33,6 +33,11 @@
             </button>
         </div>
     </div>
+    
+    <!-- Floating Voice Button -->
+    <button class="voice-chat-button" id="voice-chat-button" title="Voice Input">
+        <i class="fas fa-microphone"></i>
+    </button>
 </div>
 {% endblock %}
 
@@ -43,6 +48,117 @@
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
         const chatContainer = document.getElementById('chat-container');
+        const voiceChatButton = document.getElementById('voice-chat-button');
+        
+        // Voice recognition setup
+        let recognition = null;
+        let isListening = false;
+        
+        // Initialize Speech Recognition
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            
+            recognition.onstart = function() {
+                isListening = true;
+                voiceChatButton.classList.add('listening');
+                voiceChatButton.innerHTML = '<i class="fas fa-stop"></i>';
+                showVoiceStatus('Listening... Speak now');
+            };
+            
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                userInput.value = transcript;
+                hideVoiceStatus();
+                
+                // Auto-send the message
+                setTimeout(() => {
+                    sendMessage();
+                }, 500);
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+                
+                let errorMsg = 'Voice input error';
+                if (event.error === 'no-speech') {
+                    errorMsg = 'No speech detected';
+                } else if (event.error === 'not-allowed') {
+                    errorMsg = 'Microphone access denied';
+                }
+                showVoiceStatus(errorMsg);
+                setTimeout(hideVoiceStatus, 2000);
+            };
+            
+            recognition.onend = function() {
+                stopListening();
+            };
+        } else {
+            // Hide voice button if not supported
+            voiceChatButton.style.display = 'none';
+        }
+        
+        // Voice button click handler
+        voiceChatButton.addEventListener('click', function() {
+            if (!recognition) {
+                alert('Voice recognition is not supported in your browser.');
+                return;
+            }
+            
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        });
+        
+        function startListening() {
+            try {
+                recognition.start();
+            } catch (error) {
+                console.error('Error starting recognition:', error);
+                showVoiceStatus('Could not start voice input');
+                setTimeout(hideVoiceStatus, 2000);
+            }
+        }
+        
+        function stopListening() {
+            isListening = false;
+            voiceChatButton.classList.remove('listening');
+            voiceChatButton.innerHTML = '<i class="fas fa-microphone"></i>';
+            hideVoiceStatus();
+            
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (error) {
+                    console.error('Error stopping recognition:', error);
+                }
+            }
+        }
+        
+        function showVoiceStatus(message) {
+            let statusEl = document.getElementById('voice-status-indicator');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'voice-status-indicator';
+                statusEl.className = 'voice-status-indicator';
+                document.body.appendChild(statusEl);
+            }
+            statusEl.textContent = message;
+            statusEl.classList.add('show');
+        }
+        
+        function hideVoiceStatus() {
+            const statusEl = document.getElementById('voice-status-indicator');
+            if (statusEl) {
+                statusEl.classList.remove('show');
+            }
+        }
         
         // Quick question buttons
         document.querySelectorAll('.quick-question').forEach(button => {
@@ -63,12 +179,26 @@
             }
         });
         
+        // Store conversation history in memory
+        let conversationHistory = [];
+        
         function sendMessage() {
             const userMessage = userInput.value.trim();
             if (userMessage === '') return;
             
             // Add user message to chat
             addMessage(userMessage, 'user');
+            
+            // Add to conversation history
+            conversationHistory.push({
+                role: 'user',
+                content: userMessage
+            });
+            
+            // Keep only last 10 messages for context (5 exchanges)
+            if (conversationHistory.length > 10) {
+                conversationHistory = conversationHistory.slice(-10);
+            }
             
             // Clear input
             userInput.value = '';
@@ -82,14 +212,17 @@
             // Scroll to bottom
             chatContainer.scrollTop = chatContainer.scrollHeight;
             
-            // Send request to server
+            // Send request to server with conversation history
             fetch('{{ url_for('ai_response') }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify({ prompt: userMessage })
+                body: JSON.stringify({
+                    prompt: userMessage,
+                    conversation_history: conversationHistory
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -98,6 +231,17 @@
                 
                 // Add AI response
                 addMessage(data.response, 'assistant');
+                
+                // Add assistant response to conversation history
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: data.response
+                });
+                
+                // Keep only last 10 messages
+                if (conversationHistory.length > 10) {
+                    conversationHistory = conversationHistory.slice(-10);
+                }
             })
             .catch(error => {
                 console.error('Error:', error);

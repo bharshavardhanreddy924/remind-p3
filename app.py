@@ -519,6 +519,7 @@ def ai_response():
     
     data = request.json
     user_message = data.get('prompt', '').strip()
+    conversation_history = data.get('conversation_history', [])
     
     if not user_message:
         return jsonify({'success': False, 'message': 'Empty message'}), 400
@@ -625,8 +626,11 @@ def ai_response():
         
     context_string = "\n".join(context_info)
     
-    # ALWAYS use Groq LLM for intelligent, natural responses
-    response_text = generate_contextual_response(user_message, context_string, user, is_storing=should_auto_store)
+    # ALWAYS use Groq LLM for intelligent, natural responses with conversation history
+    response_text = generate_contextual_response(user_message, context_string, user, conversation_history, is_storing=should_auto_store)
+    
+    # Extract and store important information from the conversation
+    extract_and_store_important_info(user_id, user_message, response_text)
     
     # Store AI response
     conversation_entry['ai_response'] = response_text
@@ -634,8 +638,87 @@ def ai_response():
     
     return jsonify({'success': True, 'response': response_text})
 
-def generate_contextual_response(user_message, context, user, is_storing=False):
-    """Generate a contextual response using Groq LLM with stored context"""
+def extract_and_store_important_info(user_id, user_message, ai_response):
+    """Extract important information from conversation and store in user notes"""
+    try:
+        groq_api_key = os.getenv('GROQ_API_KEY')
+        if not groq_api_key:
+            return
+        
+        client = Groq(api_key=groq_api_key)
+        
+        # Ask LLM to extract important information
+        extraction_prompt = f"""Analyze this conversation and extract ONLY important personal information that should be remembered long-term.
+
+User said: "{user_message}"
+AI responded: "{ai_response}"
+
+Extract information like:
+- Personal details (name, age, location, family)
+- Preferences (likes, dislikes, hobbies)
+- Important facts (medical info, routines, memories)
+- Relationships (family members, friends)
+
+Return ONLY the extracted facts in a simple bullet list format. If there's nothing important to extract, return "NONE".
+
+Examples:
+- "User's name is John"
+- "User is 65 years old"
+- "User lives in California"
+- "User likes gardening"
+- "User's daughter is named Sarah"
+
+Extract now:"""
+
+        extraction = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an information extraction assistant. Extract only factual, important information."},
+                {"role": "user", "content": extraction_prompt}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.3,
+            max_tokens=150
+        )
+        
+        extracted_info = extraction.choices[0].message.content.strip()
+        
+        # Only store if there's actual information
+        if extracted_info and extracted_info != "NONE" and len(extracted_info) > 5:
+            # Get or create user notes document
+            notes_doc = db.notes.find_one({"user_id": user_id})
+            
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+            new_entry = f"\n\n[Auto-extracted {current_time}]\n{extracted_info}"
+            
+            if notes_doc:
+                # Append to existing notes
+                current_content = notes_doc.get('content', '')
+                updated_content = current_content + new_entry
+                
+                db.notes.update_one(
+                    {"user_id": user_id},
+                    {"$set": {
+                        "content": updated_content,
+                        "updated_at": datetime.now()
+                    }}
+                )
+            else:
+                # Create new notes document
+                db.notes.insert_one({
+                    "user_id": user_id,
+                    "content": f"# Important Information{new_entry}",
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now()
+                })
+            
+            print(f"✅ Extracted and stored: {extracted_info[:50]}...")
+    
+    except Exception as e:
+        print(f"⚠️ Error extracting information: {e}")
+        # Don't fail the main conversation if extraction fails
+
+def generate_contextual_response(user_message, context, user, conversation_history=None, is_storing=False):
+    """Generate a contextual response using Groq LLM with stored context and conversation history"""
     try:
         # Initialize Groq client
         groq_api_key = os.getenv('GROQ_API_KEY')
@@ -652,9 +735,11 @@ def generate_contextual_response(user_message, context, user, is_storing=False):
 CRITICAL INSTRUCTIONS:
 - You have access to the user's complete database information below
 - ALWAYS use this information to answer questions accurately
+- Remember the conversation context - refer back to what was discussed
 - Be conversational, warm, and helpful
 - Keep responses natural and friendly (2-4 sentences)
 - If user is storing new information, acknowledge it warmly
+- Use pronouns and references that show you remember the conversation
 
 USER'S COMPLETE PROFILE:
 {context if context else 'No information available yet'}
@@ -662,26 +747,42 @@ USER'S COMPLETE PROFILE:
 RESPONSE GUIDELINES:
 1. Answer questions using the profile data above
 2. Be specific - use actual names, ages, places from the data
-3. If information is missing, say so kindly and suggest they can tell you
-4. When they share new info, acknowledge and confirm you've saved it
-5. Be encouraging and supportive
+3. Remember what was discussed earlier in this conversation
+4. If information is missing, say so kindly and suggest they can tell you
+5. When they share new info, acknowledge and confirm you've saved it
+6. Be encouraging and supportive
+7. Use context from previous messages (e.g., "As I mentioned earlier...", "About that topic we discussed...")
 
 Examples:
 - "How old am I?" → Check profile for age, respond with actual age
 - "Where do I live?" → Check profile for location, respond with actual place
 - "What do I like?" → Check profile for interests, list them
 - "My age is 21" → "Great! I've saved that you're 21 years old."
+- Follow-up questions should reference previous context
 """
 
+        # Build messages array with conversation history
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history if available (last 8 messages for context)
+        if conversation_history and len(conversation_history) > 0:
+            # Take last 8 messages to maintain context without overwhelming the model
+            recent_history = conversation_history[-8:] if len(conversation_history) > 8 else conversation_history
+            for msg in recent_history:
+                messages.append({
+                    "role": msg.get('role', 'user'),
+                    "content": msg.get('content', '')
+                })
+        else:
+            # If no history, just add current message
+            messages.append({"role": "user", "content": user_message})
+        
         # Call Groq API
         chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
+            messages=messages,
             model="llama-3.3-70b-versatile",  # Updated to supported model (Dec 2024)
             temperature=0.7,
-            max_tokens=200,
+            max_tokens=250,
             top_p=0.9
         )
         
