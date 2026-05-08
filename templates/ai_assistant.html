@@ -19,12 +19,6 @@
         </div>
     </div>
     
-    <div class="quick-questions-container">
-        <button class="quick-question">What's my name?</button>
-        <button class="quick-question">How old am I?</button>
-        <button class="quick-question">Where do I live?</button>
-    </div>
-    
     <div class="chat-input-fixed">
         <div class="d-flex gap-2 align-items-center">
             <input type="text" id="user-input" class="form-control" placeholder="Type or use voice..." style="flex: 1;">
@@ -186,15 +180,6 @@
                 statusEl.classList.remove('show');
             }
         }
-        
-        // Quick question buttons
-        document.querySelectorAll('.quick-question').forEach(button => {
-            button.addEventListener('click', function() {
-                const questionText = this.textContent;
-                userInput.value = questionText;
-                sendMessage();
-            });
-        });
         
         // Enter key handler for text input
         userInput.addEventListener('keypress', function(e) {
